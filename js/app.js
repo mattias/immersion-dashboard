@@ -334,6 +334,10 @@ async function kallKort(k) {
   return `<div class="kalla ${o.pa ? 'pa' : ''}"><label><input type="checkbox" data-pa="${k.id}" ${o.pa ? 'checked' : ''}><b>${esc(k.namn)}</b><span class="liten">${esc(k.text)}</span></label><div class="detalj">${val}</div></div>`;
 }
 
+// Absolute, so the links also work in the Windows and Android apps.
+const SIDA = 'https://mattias.github.io/immersion-dashboard/';
+const SIDOR = ['about', 'privacy', 'terms'].map((s, i) => `<a href="${SIDA}${s}.html" target="_blank" rel="noopener">${['About', 'Privacy', 'Terms'][i]}</a>`).join(' · ');
+
 async function molnKort() {
   if (!molnFinns()) return '';
   const inloggad = APP ? await invoke('google_inloggad') : moln.harToken();
@@ -371,7 +375,7 @@ async function ritaDialog() {
     <p class="liten">Export saves everything the dashboard has read as one JSON file. Import it on another device to bring your history along.</p>
     <div class="valrad"><button type="button" class="knapp tyst" id="exportera">Export JSON</button><button type="button" class="knapp tyst" id="importera">Import JSON</button><button type="button" class="knapp tyst" id="raderaAllt">Erase everything</button></div>`}
   </form>
-  <div class="fot"><span class="liten">${forsta ? '<button type="button" class="knapp tyst" id="importera">I have an export file</button>' : 'Changes are saved as you make them.'}</span>
+  <div class="fot"><span class="liten">${forsta ? '<button type="button" class="knapp tyst" id="importera">I have an export file</button>' : 'Changes are saved as you make them.'} ${SIDOR}</span>
     <button type="button" class="knapp stor" id="klar">${forsta ? 'Start the journey' : 'Sync now'}</button></div>`;
   d.scrollTop = rull;
 }

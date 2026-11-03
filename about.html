@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immersion Dashboard</title>
+<meta name="description" content="A private dashboard for Japanese learners that shows what you read, play, watch and review.">
+<link rel="icon" href="icons/icon.svg">
+<link rel="stylesheet" href="css/sida.css">
+</head>
+<body>
+<main>
+<header><img src="icons/logo-120.png" alt=""><h1>旅の記録 · Immersion Dashboard<small>A private dashboard for Japanese learners</small></h1></header>
+
+<p>Immersion Dashboard gathers what you read, play, watch and review in Japanese from the apps you
+already use, and shows it by day, week, month and year: time, characters, streaks, a year
+calendar, the titles you spent time on, your Anki reviews and, if you like, your sleep.</p>
+
+<div class="knappar">
+  <a href="./">Open the dashboard</a>
+  <a href="https://github.com/mattias/immersion-dashboard/releases/latest">Windows and Android apps</a>
+  <a href="https://github.com/mattias/immersion-dashboard">Source code</a>
+</div>
+
+<h2>No server, no account</h2>
+<p>Everything the dashboard reads stays on your own devices. If you turn on <b>Sync between
+devices</b>, a copy goes to a hidden app folder in <b>your own</b> Google Drive, so your phone can
+show what your computer read. The dashboard cannot see anything else in your Drive.</p>
+
+<h2>Why it asks for Google Drive</h2>
+<p>Signing in with Google is optional. It is only used to keep one file,
+<code>immersion-dashboard.json</code>, in the app folder of your Google Drive (the permission
+<code>drive.appdata</code>), and to read the files that the
+<a href="https://github.com/mattias/immersion-web">Immersion Web</a> browser extension and the Android
+app put in the same folder. Read the <a href="privacy.html">privacy policy</a> for the details.</p>
+
+<h2>Sources</h2>
+<p>Anki, GameSentenceMiner, ttu Ebook Reader, yatsu, Hoshi Reader, Mokuro, immersion-mpv, Netflix,
+YouTube and Twitch (through Immersion Web or the Android app), Garmin Connect and a sleep file.
+Every source is optional.</p>
+
+<footer><a href="privacy.html">Privacy policy</a><a href="terms.html">Terms of service</a><a href="https://github.com/mattias/immersion-dashboard/issues">Contact</a></footer>
+</main>
+</body>
+</html>

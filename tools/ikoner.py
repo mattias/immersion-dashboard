@@ -41,4 +41,6 @@ rita(192, 0.86).save(UT / "icon-192.png")
 rita(512, 0.86).save(UT / "icon-512.png")
 rita(512, 0.66).save(UT / "maskable-512.png")
 rita(180, 0.8).save(UT / "apple-touch-icon.png")
+# The logo on Google's sign-in screen: square, 120 px.
+rita(120, 0.86).save(UT / "logo-120.png")
 print("ok")
