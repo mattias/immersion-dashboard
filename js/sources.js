@@ -140,11 +140,14 @@ export async function lasMpv(dir) {
   throw new Kallfel('No stats.jsonl here. Choose the immersion-mpv folder.');
 }
 
-// Immersion Web: the extension's file in the dashboard's app folder in Google Drive. hamtaText gives the text, or null when there is no file.
+// Netflix, YouTube and Twitch: the files the Immersion Web extension and the Android app put in the dashboard's app folder
+// in Google Drive. hamtaText(name) gives a file's text, or null when there is no such file.
+export const WEBBFILER = ['immersion-web.json', 'immersion-phone.json'];
 export async function lasWebb(hamtaText) {
-  let t;
+  let texter;
   // The Windows app's commands fail with plain text, not an Error.
-  try { t = await hamtaText(); } catch (e) { throw e instanceof Kallfel ? e : new Kallfel('Google Drive: ' + (e?.message || e)); }
-  if (t == null) throw new Kallfel('Immersion Web has not uploaded anything yet. Sign in with Google in the extension.');
-  try { return webbResultat(t); } catch (e) { throw new Kallfel(e.message); }
+  try { texter = await Promise.all(WEBBFILER.map(n => hamtaText(n))); } catch (e) { throw e instanceof Kallfel ? e : new Kallfel('Google Drive: ' + (e?.message || e)); }
+  texter = texter.filter(t => t != null);
+  if (!texter.length) throw new Kallfel('Nothing uploaded yet. Sign in with Google in the Immersion Web extension, or in Watching in the Android app.');
+  try { return webbResultat(...texter); } catch (e) { throw new Kallfel(e.message); }
 }

@@ -23,7 +23,7 @@ const GOOGLE_HEMLIGHET: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_SECRET
 const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVEFIL: &str = "immersion-dashboard.json";
 // Files other apps of the same Google project put in the app folder, which the dashboard may read.
-const ANDRA_DRIVEFILER: [&str; 1] = ["immersion-web.json"];
+const ANDRA_DRIVEFILER: [&str; 2] = ["immersion-web.json", "immersion-phone.json"];
 const DRIVE_NAMN: [&str; 8] = ["My Drive", "Min enhet", "Meine Ablage", "Mon Drive", "Mi unidad", "Il mio Drive", "Mijn Drive", "マイドライブ"];
 
 #[derive(Default)]

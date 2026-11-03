@@ -58,7 +58,7 @@ Windows, use the Windows app.
 | **ttu Ebook Reader, yatsu, Hoshi Reader, Mokuro** | Books and manga | The folders these readers sync to Google Drive, through Google Drive for desktop |
 | **Mokuro without Google Drive** | Manga read on reader.mokuro.app | A `mokuro-volumes.json` file, see below |
 | **immersion-mpv** | Anime and video watched in mpv | `%APPDATA%\immersion-mpv` |
-| **Immersion Web** | Japanese video on Netflix, YouTube and Twitch | The [Immersion Web](https://github.com/mattias/immersion-web) browser extension, through the app folder in your Google Drive |
+| **Netflix, YouTube and Twitch** | Japanese video on Netflix, YouTube and Twitch | The [Immersion Web](https://github.com/mattias/immersion-web) browser extension, and **Watching** in the Android app for the YouTube, Netflix and Twitch apps, both through the app folder in your Google Drive |
 | **Garmin Connect** | Sleep: hours and score per night | Signing in to Garmin Connect, Windows app only |
 | **Sleep from a file** | Hours and score per night | A CSV file, see below |
 
@@ -116,7 +116,14 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
   immersion-mpv's `secrets.json`. It writes nothing to them.
 - Sync between devices uses the `drive.appdata` permission: one file in a hidden folder that
   only this app can see. It cannot see anything else in your Drive. The Immersion Web extension
-  puts its own file, `immersion-web.json`, in the same folder, and the dashboard reads it too.
+  puts its own file, `immersion-web.json`, in the same folder, and the Android app puts
+  `immersion-phone.json` there. The dashboard reads both.
+- Watching in the Android app needs notification access, only to see what other apps play
+  (their media sessions); it reads no notifications. On a phone where the app was not installed
+  from a store, first allow restricted settings: App info → ⋮ → Allow restricted settings.
+  YouTube titles and channels with kana or kanji count by themselves. Twitch gives only the
+  channel name and Netflix only the episode, in the app's display language, so those count once
+  you mark them as Japanese in Watching.
 - Settings → Your data → **Export JSON** saves everything the dashboard has read, and
   **Import JSON** brings it into another device. **Erase everything** removes all data,
   settings and the background image.

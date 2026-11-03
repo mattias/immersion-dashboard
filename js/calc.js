@@ -229,14 +229,18 @@ export function mpvResultat(text) {
   return rent(r);
 }
 
-// Immersion Web, the browser extension: immersion-web.json holds totals per (date, site, video), Japanese only.
-// Videos are summed per series: the channel on YouTube and Twitch, the show on Netflix.
+// Immersion Web, the browser extension, and the Android app's watching on the phone: immersion-web.json and
+// immersion-phone.json hold totals per (date, site, video), Japanese only, in the same format.
+// Videos are summed per series over both files: the channel on YouTube and Twitch, the show on Netflix.
 const SAJTER = { youtube: 'YouTube', netflix: 'Netflix', twitch: 'Twitch' };
-export function webbResultat(text) {
-  const j = JSON.parse(text);
-  if (j?.app !== 'immersion-web') throw new Error('That file was not written by Immersion Web.');
+export function webbResultat(...texter) {
+  const entries = texter.flatMap(text => {
+    const j = JSON.parse(text);
+    if (j?.app !== 'immersion-web' && j?.app !== 'immersion-phone') throw new Error('That file was not written by Immersion Web or the Android app.');
+    return j.entries || [];
+  });
   const serier = new Map();
-  for (const p of j.entries || []) {
+  for (const p of entries) {
     const titel = p.series || p.title || SAJTER[p.site] || p.site, k = p.date + '\u0000' + p.site + '\u0000' + titel;
     if (!serier.has(k)) serier.set(k, { dag: p.date, kalla: SAJTER[p.site] || p.site, titel, c: 0, s: 0, e: new Set() });
     const s = serier.get(k);

@@ -44,8 +44,54 @@ if (!process.argv.includes('--bygg')) {
   await twa.saveToFile(join(MAPP, 'twa-manifest.json'));
 }
 
+// Watching on the phone (android/app/src/main/java/.../titta) lives outside what Bubblewrap generates,
+// so the manifest entries and dependencies are put back after every regeneration.
+const TITTA_MANIFEST = `
+        <!-- Watching on the phone: counts Japanese video in YouTube, Netflix and Twitch. -->
+        <service android:name=".titta.TittaTjanst"
+            android:label="旅の記録 · Watching"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity android:name=".titta.TittaAktivitet"
+            android:label="旅の記録 · Watching"
+            android:icon="@mipmap/ic_launcher"
+            android:theme="@android:style/Theme.Material"
+            android:taskAffinity=".titta"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="immersiondashboard" android:host="watching" />
+            </intent-filter>
+        </activity>
+`;
+const TITTA_BEROENDEN = `
+    // Watching on the phone: Google Drive sign-in, and org.json for the JVM unit tests.
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+`;
+const manifestFil = join(MAPP, 'app', 'src', 'main', 'AndroidManifest.xml'), gradleFil = join(MAPP, 'app', 'build.gradle');
+const manifest = readFileSync(manifestFil, 'utf8'), gradle = readFileSync(gradleFil, 'utf8');
+let nyManifest = manifest;
+// A Trusted Web Activity needs no network of its own (Chrome does that), but the Drive upload does.
+if (!nyManifest.includes('android.permission.INTERNET')) nyManifest = nyManifest.replace(/(\n\s*<application)/, '\n    <uses-permission android:name="android.permission.INTERNET" />\n$1');
+if (!nyManifest.includes('TittaTjanst')) nyManifest = nyManifest.replace(/(\n\s*<\/application>)/, TITTA_MANIFEST + '$1');
+if (nyManifest !== manifest) writeFileSync(manifestFil, nyManifest);
+if (!gradle.includes('play-services-auth')) writeFileSync(gradleFil, gradle.replace(/(dependencies \{[^]*?)(\n\}\s*)$/, '$1' + TITTA_BEROENDEN + '$2'));
+
 // Gradle by full path: Windows may be set not to run programs from the current folder.
-execFileSync(join(MAPP, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'), ['assembleRelease'], { cwd: MAPP, stdio: 'inherit', shell: process.platform === 'win32', env: { ...process.env, JAVA_HOME: jdk, ANDROID_HOME: sdk } });
+execFileSync(join(MAPP, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'), ['testReleaseUnitTest', 'assembleRelease'], { cwd: MAPP, stdio: 'inherit', shell: process.platform === 'win32', env: { ...process.env, JAVA_HOME: jdk, ANDROID_HOME: sdk } });
 const osignerad = join(MAPP, 'app', 'build', 'outputs', 'apk', 'release', 'app-release-unsigned.apk');
 const justerad = join(MAPP, 'app-release-aligned.apk'), klar = join(MAPP, 'app-release-signed.apk');
 // zipalign and apksigner from the newest build-tools installed.

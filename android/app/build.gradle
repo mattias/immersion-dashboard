@@ -210,4 +210,9 @@ dependencies {
     
         implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
     
+    // Watching on the phone: Google Drive sign-in, and org.json for the JVM unit tests.
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+
 }

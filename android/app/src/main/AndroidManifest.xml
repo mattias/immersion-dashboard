@@ -21,6 +21,8 @@
      the abbreviated format. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.mattias.immersiondashboard">
+    <uses-permission android:name="android.permission.INTERNET" />
+
 
     
 
@@ -186,6 +188,34 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
+        <!-- Watching on the phone: counts Japanese video in YouTube, Netflix and Twitch. -->
+        <service android:name=".titta.TittaTjanst"
+            android:label="旅の記録 · Watching"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity android:name=".titta.TittaAktivitet"
+            android:label="旅の記録 · Watching"
+            android:icon="@mipmap/ic_launcher"
+            android:theme="@android:style/Theme.Material"
+            android:taskAffinity=".titta"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="immersiondashboard" android:host="watching" />
+            </intent-filter>
+        </activity>
+
 
         
 

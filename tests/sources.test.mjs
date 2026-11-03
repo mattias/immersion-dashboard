@@ -129,9 +129,13 @@ test('immersion-mpv reads only stats.jsonl', async () => {
   assert.deepEqual(r.akt, [['2026-11-02', 'titta', 'A', 10, 2, 'mpv']]);
 });
 
-test('Immersion Web is read from the text Google Drive gives', async () => {
+test('Immersion Web and the phone are read from the text Google Drive gives', async () => {
   const fil = JSON.stringify({ app: 'immersion-web', entries: [{ date: '2026-11-03', site: 'twitch', id: 'a', series: 'a', seconds: 120, chars: 0 }] });
-  assert.deepEqual((await lasWebb(async () => fil)).akt, [['2026-11-03', 'titta', 'a', 0, 2, 'Twitch']]);
+  const tel = JSON.stringify({ app: 'immersion-phone', entries: [{ date: '2026-11-03', site: 'twitch', id: 'a', series: 'a', seconds: 60, chars: 0 }] });
+  assert.deepEqual((await lasWebb(async n => n === 'immersion-web.json' ? fil : null)).akt, [['2026-11-03', 'titta', 'a', 0, 2, 'Twitch']]);
+  assert.deepEqual((await lasWebb(async n => n === 'immersion-phone.json' ? tel : null)).akt, [['2026-11-03', 'titta', 'a', 0, 1, 'Twitch']]);
+  // The same channel watched on the computer and on the phone the same day is summed.
+  assert.deepEqual((await lasWebb(async n => n === 'immersion-web.json' ? fil : tel)).akt, [['2026-11-03', 'titta', 'a', 0, 3, 'Twitch']]);
   await assert.rejects(lasWebb(async () => null), Kallfel);
   await assert.rejects(lasWebb(async () => 'not json'), Kallfel);
   await assert.rejects(lasWebb(async () => { throw 'not signed in'; }), { message: 'Google Drive: not signed in' });
