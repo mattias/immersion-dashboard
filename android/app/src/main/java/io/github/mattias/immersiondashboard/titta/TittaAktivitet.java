@@ -1,9 +1,13 @@
 package io.github.mattias.immersiondashboard.titta;
 
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -35,6 +39,16 @@ import java.util.concurrent.Executors;
 public class TittaAktivitet extends Activity {
     private static final int GOOGLE = 1;
     private LinearLayout lista;
+    private long nedladdning = -1;
+    private final BroadcastReceiver klar = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            long id = i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -2);
+            if (id != nedladdning) return;
+            nedladdning = -1;
+            Uppdatering.installera(TittaAktivitet.this, id);
+            rita();
+        }
+    };
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -46,10 +60,21 @@ public class TittaAktivitet extends Activity {
         s.setFitsSystemWindows(true);
         s.addView(lista);
         setContentView(s);
+        // For the notification when an update of the app is out.
+        if (Build.VERSION.SDK_INT >= 33) requestPermissions(new String[] { "android.permission.POST_NOTIFICATIONS" }, 2);
+        IntentFilter f = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(klar, f, Context.RECEIVER_EXPORTED);
+        else registerReceiver(klar, f);
+    }
+
+    @Override protected void onDestroy() {
+        unregisterReceiver(klar);
+        super.onDestroy();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        Uppdatering.kolla(this, () -> runOnUiThread(this::rita));
         rita();
     }
 
@@ -81,6 +106,15 @@ public class TittaAktivitet extends Activity {
     private void rita() {
         lista.removeAllViews();
         Logg l = Logg.av(this);
+        String[] ny = Uppdatering.vantar(this);
+        if (ny != null) {
+            text("Update available: " + ny[0], 17, true).setTextColor(0xFF81C784);
+            if (nedladdning >= 0) text("Downloading… Android asks you to install it when it's done.", 13, false);
+            else {
+                text("You have " + Uppdatering.version(this) + ". If Android asks, allow installing apps from Immersion Dashboard.", 13, false);
+                knapp("Update now", v -> { nedladdning = Uppdatering.ladda(this, ny[0], ny[1]); rita(); });
+            }
+        }
         text("Watching on this phone", 22, true);
         text("Counts Japanese video, music and podcasts while they play in YouTube, YouTube Music, Netflix and Twitch, and uploads it to the dashboard's hidden app folder in "
             + "Google Drive. The dashboard shows it under Netflix, YouTube and Twitch after the next sync.", 14, false);

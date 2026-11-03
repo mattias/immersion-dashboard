@@ -1,6 +1,6 @@
 {
   "name": "immersion-dashboard",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "A private immersion dashboard for Japanese learners that runs entirely in the browser.",

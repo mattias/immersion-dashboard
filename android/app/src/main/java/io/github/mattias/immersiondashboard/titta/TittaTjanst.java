@@ -54,6 +54,7 @@ public class TittaTjanst extends NotificationListenerService {
         ComponentName jag = new ComponentName(this, TittaTjanst.class);
         msm.addOnActiveSessionsChangedListener(lyssnare, jag, h);
         sessioner(msm.getActiveSessions(jag));
+        Uppdatering.kolla(this, null);
     }
 
     @Override public void onListenerDisconnected() {
@@ -116,6 +117,7 @@ public class TittaTjanst extends NotificationListenerService {
     }
 
     private void ladda() {
+        Uppdatering.kolla(this, null);
         bakgrund.execute(() -> Drive.ladda(getApplicationContext(), false));
     }
 

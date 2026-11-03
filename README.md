@@ -153,6 +153,20 @@ must list the key's fingerprint; the build writes that file to `android/assetlin
 The Windows app is built with [Tauri](https://tauri.app). It needs Rust and the WebView2
 runtime, which Windows 10 and 11 already have.
 
+### Updates
+
+Both apps look for a newer release on GitHub and ask before they update.
+
+- **Windows** checks at start. The installer is signed with the updater key in
+  `~/.tauri-keys/immersion-dashboard.key`, whose public half is in `tauri.conf.json`. Keep a backup:
+  without it, installed apps cannot update. `npm run app:build` signs when the key is there and
+  writes `tmp/Immersion-Dashboard-<version>-x64-setup.exe` and `tmp/latest.json`. Upload both to
+  the release; the apps read `latest.json` from the latest release.
+- **Android** checks at most twice a day, from the Watching service and screen, and shows a
+  notification. **Update now** in Watching downloads the APK and opens Android's installer. The
+  dashboard itself is the website, so only Watching needs the APK to be current. Build with
+  `ANDROID_VERSION_CODE` one higher than the last release.
+
 ### Sync between devices: Google Cloud setup
 
 Both forms of the app must use OAuth clients from the **same** Google Cloud project, because the

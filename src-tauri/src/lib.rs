@@ -12,7 +12,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_updater::UpdaterExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 mod garmin;
@@ -299,16 +300,40 @@ async fn drive_spara(app: AppHandle, st: State<'_, Tillstand>, data: String) -> 
     if svar.status().is_success() { Ok(()) } else { Err(format!("Google Drive answered {}", svar.status())) }
 }
 
+// Looks for a newer release on GitHub at start. The user chooses; the installer then replaces the app and opens it again.
+// No network, or a build without the updater's signing key: the check fails quietly.
+async fn uppdatera(app: AppHandle) {
+    let Ok(u) = app.updater() else { return };
+    let Ok(Some(ny)) = u.check().await else { return };
+    let fraga = format!("Immersion Dashboard {} is available. You have {}.
+
+Update now? The app closes and opens again when it's done.", ny.version, ny.current_version);
+    let h = app.clone();
+    app.dialog().message(fraga).title("Update available")
+        .buttons(MessageDialogButtons::OkCancelCustom("Update".into(), "Later".into()))
+        .show(move |ja| {
+            if !ja { return; }
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = ny.download_and_install(|_, _| {}, || {}).await {
+                    h.dialog().message(format!("The update could not be installed: {e}")).title("Update").show(|_| {});
+                }
+            });
+        });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Tillstand::default())
         .manage(garmin::Garmin::default())
         .setup(|app| {
             let r = ladda_rotter(app.handle());
             *app.state::<Tillstand>().rotter.lock().unwrap() = r;
+            let h = app.handle().clone();
+            tauri::async_runtime::spawn(async move { uppdatera(h).await });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![standard, lista, typ, las, valj, anki_connect, google_inloggad, google_logga_ut, drive_hamta, drive_las, drive_spara, garmin::garmin_hamta, garmin::garmin_svar])

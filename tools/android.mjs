@@ -86,6 +86,10 @@ const manifest = readFileSync(manifestFil, 'utf8'), gradle = readFileSync(gradle
 let nyManifest = manifest;
 // A Trusted Web Activity needs no network of its own (Chrome does that), but the Drive upload does.
 if (!nyManifest.includes('android.permission.INTERNET')) nyManifest = nyManifest.replace(/(\n\s*<application)/, '\n    <uses-permission android:name="android.permission.INTERNET" />\n$1');
+// Updating the app itself: a notification when a new version is out, and opening the downloaded APK in Android's installer.
+for (const r of ['android.permission.POST_NOTIFICATIONS', 'android.permission.REQUEST_INSTALL_PACKAGES']) {
+  if (!nyManifest.includes(r)) nyManifest = nyManifest.replace(/(\n\s*<application)/, `\n    <uses-permission android:name="${r}" />\n$1`);
+}
 if (!nyManifest.includes('TittaTjanst')) nyManifest = nyManifest.replace(/(\n\s*<\/application>)/, TITTA_MANIFEST + '$1');
 if (nyManifest !== manifest) writeFileSync(manifestFil, nyManifest);
 if (!gradle.includes('play-services-auth')) writeFileSync(gradleFil, gradle.replace(/(dependencies \{[^]*?)(\n\}\s*)$/, '$1' + TITTA_BEROENDEN + '$2'));
