@@ -46,8 +46,8 @@ async function anrop(t, url, init = {}) {
   return r;
 }
 
-async function hittaFil(t) {
-  const q = encodeURIComponent(`name='${FIL}'`);
+async function hittaFil(t, namn = FIL) {
+  const q = encodeURIComponent(`name='${namn}'`);
   const r = await (await anrop(t, `${API}/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`)).json();
   return r.files?.[0]?.id || null;
 }
@@ -56,6 +56,12 @@ export async function hamta(t) {
   const id = await hittaFil(t);
   if (!id) return { id: null, data: null };
   return { id, data: await (await anrop(t, `${API}/drive/v3/files/${id}?alt=media`)).json() };
+}
+
+// Another app's file in the same app folder, such as the Immersion Web extension's. null when there is none.
+export async function hamtaText(t, namn) {
+  const id = await hittaFil(t, namn);
+  return id ? (await anrop(t, `${API}/drive/v3/files/${id}?alt=media`)).text() : null;
 }
 
 export async function spara(t, id, data) {

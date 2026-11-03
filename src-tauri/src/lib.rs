@@ -22,6 +22,8 @@ const GOOGLE_ID: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_ID");
 const GOOGLE_HEMLIGHET: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_SECRET");
 const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVEFIL: &str = "immersion-dashboard.json";
+// Files other apps of the same Google project put in the app folder, which the dashboard may read.
+const ANDRA_DRIVEFILER: [&str; 1] = ["immersion-web.json"];
 const DRIVE_NAMN: [&str; 8] = ["My Drive", "Min enhet", "Meine Ablage", "Mon Drive", "Mi unidad", "Il mio Drive", "Mijn Drive", "マイドライブ"];
 
 #[derive(Default)]
@@ -250,9 +252,9 @@ fn google_logga_ut(app: AppHandle, st: State<Tillstand>) {
     if let Some(f) = tokenfil(&app) { let _ = std::fs::remove_file(f); }
 }
 
-async fn drive_fil_id(t: &str) -> Result<Option<String>, String> {
+async fn drive_fil_id(t: &str, namn: &str) -> Result<Option<String>, String> {
     let svar = reqwest::Client::new().get("https://www.googleapis.com/drive/v3/files").bearer_auth(t)
-        .query(&[("spaces", "appDataFolder"), ("q", &format!("name='{DRIVEFIL}'")), ("fields", "files(id)")])
+        .query(&[("spaces", "appDataFolder"), ("q", &format!("name='{namn}'")), ("fields", "files(id)")])
         .send().await.map_err(|e| e.to_string())?;
     if !svar.status().is_success() { return Err(format!("Google Drive answered {}", svar.status())); }
     let j: Value = svar.json().await.map_err(|e| e.to_string())?;
@@ -262,8 +264,18 @@ async fn drive_fil_id(t: &str) -> Result<Option<String>, String> {
 // Merges with the phone's copy happen in JavaScript; Rust only moves the file.
 #[tauri::command]
 async fn drive_hamta(app: AppHandle, st: State<'_, Tillstand>, fraga: bool) -> Result<Option<String>, String> {
-    let Some(t) = token(&app, &st, fraga).await? else { return Err("not signed in".into()) };
-    let Some(id) = drive_fil_id(&t).await? else { return Ok(None) };
+    drive_las_fil(&app, &st, fraga, DRIVEFIL).await
+}
+
+#[tauri::command]
+async fn drive_las(app: AppHandle, st: State<'_, Tillstand>, namn: String, fraga: bool) -> Result<Option<String>, String> {
+    if !ANDRA_DRIVEFILER.contains(&namn.as_str()) { return Err("not allowed".into()); }
+    drive_las_fil(&app, &st, fraga, &namn).await
+}
+
+async fn drive_las_fil(app: &AppHandle, st: &Tillstand, fraga: bool, namn: &str) -> Result<Option<String>, String> {
+    let Some(t) = token(app, st, fraga).await? else { return Err("not signed in".into()) };
+    let Some(id) = drive_fil_id(&t, namn).await? else { return Ok(None) };
     let svar = reqwest::Client::new().get(format!("https://www.googleapis.com/drive/v3/files/{id}?alt=media")).bearer_auth(&t).send().await.map_err(|e| e.to_string())?;
     if !svar.status().is_success() { return Err(format!("Google Drive answered {}", svar.status())); }
     svar.text().await.map(Some).map_err(|e| e.to_string())
@@ -273,7 +285,7 @@ async fn drive_hamta(app: AppHandle, st: State<'_, Tillstand>, fraga: bool) -> R
 async fn drive_spara(app: AppHandle, st: State<'_, Tillstand>, data: String) -> Result<(), String> {
     let Some(t) = token(&app, &st, false).await? else { return Err("not signed in".into()) };
     let k = reqwest::Client::new();
-    let svar = match drive_fil_id(&t).await? {
+    let svar = match drive_fil_id(&t, DRIVEFIL).await? {
         Some(id) => k.patch(format!("https://www.googleapis.com/upload/drive/v3/files/{id}?uploadType=media")).bearer_auth(&t)
             .header("Content-Type", "application/json").body(data).send().await,
         None => {
@@ -299,7 +311,7 @@ pub fn run() {
             *app.state::<Tillstand>().rotter.lock().unwrap() = r;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![standard, lista, typ, las, valj, anki_connect, google_inloggad, google_logga_ut, drive_hamta, drive_spara, garmin::garmin_hamta, garmin::garmin_svar])
+        .invoke_handler(tauri::generate_handler![standard, lista, typ, las, valj, anki_connect, google_inloggad, google_logga_ut, drive_hamta, drive_las, drive_spara, garmin::garmin_hamta, garmin::garmin_svar])
         .run(tauri::generate_context!())
         .expect("error while running the app");
 }

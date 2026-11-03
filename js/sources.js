@@ -1,6 +1,6 @@
 // Reads each source into a result of the form { akt, anki, minade }.
 // Folders come in through a small adapter (see mapp() in store.js and tools/nodedir.mjs), so the same code runs in Node.
-import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, somnResultat, nyttResultat, rent } from './calc.js';
+import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, webbResultat, somnResultat, nyttResultat, rent } from './calc.js';
 import { oppna, rader } from './sqlite.js';
 
 const vanta = ms => new Promise(ok => setTimeout(ok, ms));
@@ -138,4 +138,13 @@ export async function lasMpv(dir) {
     await vanta(1000);
   }
   throw new Kallfel('No stats.jsonl here. Choose the immersion-mpv folder.');
+}
+
+// Immersion Web: the extension's file in the dashboard's app folder in Google Drive. hamtaText gives the text, or null when there is no file.
+export async function lasWebb(hamtaText) {
+  let t;
+  // The Windows app's commands fail with plain text, not an Error.
+  try { t = await hamtaText(); } catch (e) { throw e instanceof Kallfel ? e : new Kallfel('Google Drive: ' + (e?.message || e)); }
+  if (t == null) throw new Kallfel('Immersion Web has not uploaded anything yet. Sign in with Google in the extension.');
+  try { return webbResultat(t); } catch (e) { throw new Kallfel(e.message); }
 }

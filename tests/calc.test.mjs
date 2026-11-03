@@ -1,7 +1,7 @@
 process.env.TZ = 'Europe/Stockholm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
+import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, webbResultat, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
 
 const ms = s => new Date(s).getTime();
 
@@ -89,4 +89,23 @@ test('immersion-mpv lines are increments, summed per file', () => {
   ].map(x => JSON.stringify(x)).join('\n');
   const d = kombinera([mpvResultat(rader)]);
   assert.deepEqual(d['2026-11-02'].akt, [{ k: 'titta', t: 'Show', c: 150, m: 1.5, s: 'mpv', e: [3] }, { k: 'titta', t: 'clip', c: 0, m: 0.5, s: 'mpv' }]);
+});
+
+test('Immersion Web entries are summed per site and series', () => {
+  const fil = JSON.stringify({ app: 'immersion-web', version: 1, entries: [
+    { date: '2026-11-03', site: 'netflix', id: '1', series: 'Frieren', title: 'A', episode: 3, seconds: 1440, active: 1440, chars: 300 },
+    { date: '2026-11-03', site: 'netflix', id: '2', series: 'Frieren', title: 'B', episode: 4, seconds: 1380, active: 600, chars: 250 },
+    { date: '2026-11-03', site: 'netflix', id: '3', series: 'Frieren', title: 'C', episode: 5, seconds: 30, active: 30, chars: 5 },
+    { date: '2026-11-03', site: 'youtube', id: 'x', series: 'ANNnewsCH', title: 'ニュース', episode: null, seconds: 600, active: 0, chars: 0 },
+    { date: '2026-11-04', site: 'twitch', id: 'stylishnoob4', series: 'stylishnoob4', title: '配信', episode: null, seconds: 20, active: 20, chars: 0 }
+  ] });
+  const r = webbResultat(fil);
+  assert.deepEqual(r.akt, [
+    ['2026-11-03', 'titta', 'Frieren', 555, 47.5, 'Netflix', [3, 4]],
+    ['2026-11-03', 'titta', 'ANNnewsCH', 0, 10, 'YouTube']
+  ]);
+  // The same show watched in mpv the same day counts once, the larger entry.
+  const d = kombinera([r, mpvResultat(JSON.stringify({ date: '2026-11-03', file: 'f.mkv', title: 'Frieren', anilist_id: 1, seconds: 600, chars: 100, episode: 3 }))]);
+  assert.deepEqual(d['2026-11-03'].akt.map(a => [a.t, a.s]), [['Frieren', 'Netflix'], ['ANNnewsCH', 'YouTube']]);
+  assert.throws(() => webbResultat('{"app":"something else"}'));
 });

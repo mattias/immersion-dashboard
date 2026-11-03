@@ -229,6 +229,26 @@ export function mpvResultat(text) {
   return rent(r);
 }
 
+// Immersion Web, the browser extension: immersion-web.json holds totals per (date, site, video), Japanese only.
+// Videos are summed per series: the channel on YouTube and Twitch, the show on Netflix.
+const SAJTER = { youtube: 'YouTube', netflix: 'Netflix', twitch: 'Twitch' };
+export function webbResultat(text) {
+  const j = JSON.parse(text);
+  if (j?.app !== 'immersion-web') throw new Error('That file was not written by Immersion Web.');
+  const serier = new Map();
+  for (const p of j.entries || []) {
+    const titel = p.series || p.title || SAJTER[p.site] || p.site, k = p.date + '\u0000' + p.site + '\u0000' + titel;
+    if (!serier.has(k)) serier.set(k, { dag: p.date, kalla: SAJTER[p.site] || p.site, titel, c: 0, s: 0, e: new Set() });
+    const s = serier.get(k);
+    s.c += p.chars || 0;
+    s.s += p.seconds || 0;
+    if (Number.isInteger(p.episode) && p.seconds >= 60) s.e.add(p.episode);
+  }
+  const r = nyttResultat();
+  for (const s of serier.values()) r.lagg(s.dag, 'titta', s.titel, s.c, s.s / 60, s.kalla, [...s.e]);
+  return rent(r);
+}
+
 // Sleep per night from a CSV file, such as the one garmin.py writes. Swedish or English column names.
 export function somnResultat(text) {
   const rader = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(r => r.trim());

@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, utimes } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import initSqlJs from 'sql.js';
-import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMpv, Kallfel } from '../js/sources.js';
+import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMpv, lasWebb, Kallfel } from '../js/sources.js';
 import { laggPaWal, oppna, rader } from '../js/sqlite.js';
 import { nodeMapp } from '../tools/nodedir.mjs';
 
@@ -127,6 +127,14 @@ test('immersion-mpv reads only stats.jsonl', async () => {
   await writeFile(join(dir, 'secrets.json'), 'not json, never read');
   const r = await lasMpv(nodeMapp(dir));
   assert.deepEqual(r.akt, [['2026-11-02', 'titta', 'A', 10, 2, 'mpv']]);
+});
+
+test('Immersion Web is read from the text Google Drive gives', async () => {
+  const fil = JSON.stringify({ app: 'immersion-web', entries: [{ date: '2026-11-03', site: 'twitch', id: 'a', series: 'a', seconds: 120, chars: 0 }] });
+  assert.deepEqual((await lasWebb(async () => fil)).akt, [['2026-11-03', 'titta', 'a', 0, 2, 'Twitch']]);
+  await assert.rejects(lasWebb(async () => null), Kallfel);
+  await assert.rejects(lasWebb(async () => 'not json'), Kallfel);
+  await assert.rejects(lasWebb(async () => { throw 'not signed in'; }), { message: 'Google Drive: not signed in' });
 });
 
 test('sleep CSV from garmin.py', async () => {

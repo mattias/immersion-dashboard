@@ -37,6 +37,7 @@ export const STANDARD = {
     lasare: { pa: false, ttu: true, yatsu: true, hoshi: true, mokuro: true },
     mokuro: { pa: false },
     mpv: { pa: false },
+    webb: { pa: false },
     garmin: { pa: false },
     somn: { pa: false }
   },

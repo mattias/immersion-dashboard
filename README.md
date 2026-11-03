@@ -58,6 +58,7 @@ Windows, use the Windows app.
 | **ttu Ebook Reader, yatsu, Hoshi Reader, Mokuro** | Books and manga | The folders these readers sync to Google Drive, through Google Drive for desktop |
 | **Mokuro without Google Drive** | Manga read on reader.mokuro.app | A `mokuro-volumes.json` file, see below |
 | **immersion-mpv** | Anime and video watched in mpv | `%APPDATA%\immersion-mpv` |
+| **Immersion Web** | Japanese video on Netflix, YouTube and Twitch | The [Immersion Web](https://github.com/mattias/immersion-web) browser extension, through the app folder in your Google Drive |
 | **Garmin Connect** | Sleep: hours and score per night | Signing in to Garmin Connect, Windows app only |
 | **Sleep from a file** | Hours and score per night | A CSV file, see below |
 
@@ -105,6 +106,8 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
   counted from the text lines, without pauses longer than the pause limit.
 - Mokuro page turns count new characters only, so paging back and forth does not add text.
 - immersion-mpv rows are increments and are summed per file and day.
+- Immersion Web counts only time when the video plays with sound and no ad runs, and only videos
+  it knows are Japanese. Videos are summed per channel (YouTube, Twitch) or show (Netflix) and day.
 - Anki's day changes at 04:00. Everything else uses midnight.
 
 ## Your data
@@ -112,7 +115,8 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
 - The Windows app reads only the source folders and files you see in the settings, and never
   immersion-mpv's `secrets.json`. It writes nothing to them.
 - Sync between devices uses the `drive.appdata` permission: one file in a hidden folder that
-  only this app can see. It cannot see anything else in your Drive.
+  only this app can see. It cannot see anything else in your Drive. The Immersion Web extension
+  puts its own file, `immersion-web.json`, in the same folder, and the dashboard reads it too.
 - Settings → Your data → **Export JSON** saves everything the dashboard has read, and
   **Import JSON** brings it into another device. **Erase everything** removes all data,
   settings and the background image.
@@ -178,7 +182,7 @@ day by day against a `data.js` from the earlier Python version of this dashboard
 | File | Purpose |
 | --- | --- |
 | `js/calc.js` | Counting rules for every source |
-| `js/sources.js` | Reads Anki, GSM, the readers, Mokuro, immersion-mpv and sleep |
+| `js/sources.js` | Reads Anki, GSM, the readers, Mokuro, immersion-mpv, Immersion Web and sleep |
 | `js/sqlite.js` | Opens SQLite files with sql.js and applies the `-wal` file |
 | `js/store.js` | IndexedDB storage and the browser's folder adapter |
 | `js/plattform.js` | The Windows app's folder adapter and AnkiConnect bridge |

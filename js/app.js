@@ -1,7 +1,7 @@
 // Ties the app together: settings, where each source is, syncing, setup, export and import.
 // Runs both as the Windows app (reads AppData directly) and as the web app (folder handles, or data synced from the computer).
 import { kombinera } from './calc.js';
-import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasSomn, Kallfel } from './sources.js';
+import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasWebb, lasSomn, Kallfel } from './sources.js';
 import { hamta, spara, radera, installningar, mapp, harBehorighet } from './store.js';
 import { visa, sattBild } from './view.js';
 import { APP, invoke, appMapp, appFil, ankiConnectViaApp } from './plattform.js';
@@ -28,6 +28,7 @@ const KALLOR = [
   { id: 'mokuro', namn: 'Mokuro without Google Drive', text: 'Manga read on reader.mokuro.app, from a file you download. Not needed if Mokuro syncs to Google Drive.', typ: 'fil' },
   { id: 'mpv', namn: 'immersion-mpv', text: 'Anime and video watched in mpv with immersion-mpv.', typ: 'mapp', appdata: true,
     sokvag: { win: '%APPDATA%\\immersion-mpv', mac: '~/.config/immersion-mpv', linux: '~/.config/immersion-mpv' } },
+  { id: 'webb', namn: 'Immersion Web: Netflix, YouTube and Twitch', text: 'Japanese video watched in the browser, logged by the Immersion Web extension.', typ: 'drive' },
   { id: 'garmin', namn: 'Garmin Connect', text: 'Sleep per night from your Garmin watch.', typ: 'garmin' },
   { id: 'somn', namn: 'Sleep from a file', text: 'Hours of sleep per night from a CSV file, for watches other than Garmin.', typ: 'fil' }
 ];
@@ -65,6 +66,7 @@ const appSokvag = k => S.kallor[k.id].sokvag || STD[k.id] || '';
 // Where the source's data is: a folder or file adapter, or null when it is not set up on this device.
 async function plats(k, fraga) {
   if (k.typ === 'garmin') return APP ? 'garmin' : null;
+  if (k.typ === 'drive') return molnFinns() ? 'drive' : null;
   if (k.typ === 'garmin') return r ? `<span class="status ok">✓ ${Object.keys(r.somn || {}).length} nights${last}</span>` : '<span class="status">Not fetched yet</span>';
   if (APP) {
     const p = appSokvag(k);
@@ -104,7 +106,9 @@ async function lasGarmin(fraga) {
   return { akt: [], anki: {}, minade: {}, somn: { ...forra?.somn, ...garminNatter(svar.natter) } };
 }
 
-let fragaNu = false;
+// The Immersion Web extension uploads this file to the same app folder in Google Drive.
+const WEBBFIL = 'immersion-web.json';
+let fragaNu = false, tokenNu = null;
 function las(k, p) {
   const o = valfritt(k.id);
   if (k.id === 'anki') return lasAnkiKalla(p, o);
@@ -113,6 +117,13 @@ function las(k, p) {
   if (k.id === 'mokuro') return lasMokuro(p, o);
   if (k.id === 'somn') return lasSomn(p);
   if (k.id === 'garmin') return lasGarmin(fragaNu);
+  if (k.id === 'webb') return lasWebb(async () => {
+    if (APP) return invoke('drive_las', { namn: WEBBFIL, fraga: fragaNu });
+    const t = await tokenNu;
+    if (!t) throw new Kallfel('Press ↻ to fetch from Google Drive.');
+    if (t instanceof Error) throw new Kallfel(t.message);
+    return moln.hamtaText(t, WEBBFIL);
+  });
   return lasMpv(p);
 }
 
@@ -123,10 +134,13 @@ async function synka(fraga) {
   senastSynk = Date.now();
   $('synk').classList.add('snurrar');
   const medMoln = molnFinns() && S.moln.pa;
-  const webbToken = !APP && medMoln && fraga ? moln.begarToken().catch(e => e) : null;
+  // Immersion Web is read from Drive even when the dashboard's own copy is not synced.
+  const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa);
+  const webbToken = behoverToken && (fraga || moln.harToken()) ? moln.begarToken().catch(e => e) : null;
   const fel = [];
   let lastes = 0, vantar = false;
   fragaNu = fraga;
+  tokenNu = webbToken;
   try {
     // Permissions first, while the click still counts as a user gesture.
     const platser = {};
@@ -138,6 +152,8 @@ async function synka(fraga) {
     for (const k of KALLOR) {
       if (!S.kallor[k.id].pa || !(k.id in platser)) continue;
       if (!platser[k.id] && !(k.id === 'anki' && (APP || S.kallor.anki.lage === 'connect'))) continue;
+      // Google may only ask to sign in after a click, so until then the last result read is shown.
+      if (k.typ === 'drive' && !APP && !webbToken) { status[k.id] = { fel: 'Press ↻ to fetch from Google Drive.' }; continue; }
       try {
         const r = await las(k, platser[k.id]);
         await spara('resultat:' + k.id, { akt: r.akt, anki: r.anki, minade: r.minade, somn: r.somn, tid: Date.now(), har: true });
@@ -252,6 +268,7 @@ async function kallStatus(k) {
   if (st?.fel) return `<span class="status fel">${esc(st.fel)}</span>`;
   const last = r ? ` · read ${klockslag(r.tid)}${st?.via ? ' through ' + st.via : ''}` : '';
   if (k.id === 'anki' && o.lage === 'connect') return r ? `<span class="status ok">✓ AnkiConnect${last}</span>` : '<span class="status">Not read yet</span>';
+  if (k.typ === 'drive') return r ? `<span class="status ok">✓ Google Drive${last}</span>` : '<span class="status">Not read yet</span>';
   if (APP) {
     const p = appSokvag(k);
     if (p) return `<span class="status ok">✓ <code>${esc(p)}</code>${last}</span>`;
@@ -295,6 +312,9 @@ async function kallKort(k) {
   if (k.typ === 'garmin') {
     val += APP ? `<p class="liten">The first sync opens Garmin Connect's own sign-in page in a window. The dashboard never sees your password. It fetches every night Garmin has the first time, then only new nights.</p><div class="valrad">${await kallStatus(k)}${await hamta('resultat:garmin') ? '<button type="button" class="knapp tyst" id="garminOm">Fetch all nights again</button>' : ''}</div>`
       : `<p class="varning">Garmin can only be read by the Windows app${molnFinns() ? ', which syncs it here through Google Drive' : ''}.</p>`;
+  } else if (k.typ === 'drive') {
+    val += molnFinns() ? `<p class="liten">Install <a href="https://github.com/mattias/immersion-web" target="_blank" rel="noopener">Immersion Web</a> in Vivaldi, Chrome or Edge and sign in with Google there. It counts only time when the video plays with sound, and uploads Japanese watching to the same hidden app folder in your Drive. The dashboard fetches it when you sync.</p><div class="valrad">${await kallStatus(k)}</div>`
+      : '<p class="varning">Needs Google Drive, which this copy of the dashboard has no client ID for.</p>';
   } else if (connect) {
     val += APP ? '<p class="liten">Anki must be open when you sync. Reviews of cards you have deleted are not included.</p>'
       : `<p class="liten">In Anki, open Tools → Add-ons → AnkiConnect → Config and add <code>"${esc(location.origin)}"</code> to <code>webCorsOriginList</code>, then restart Anki. Anki must be open when you sync. Reviews of deleted cards are not included.</p>`;
