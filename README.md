@@ -35,9 +35,13 @@ the settings.
 
 1. In the Windows app, turn on **Sync between devices** and sync once. Your browser opens so
    you can sign in with Google.
-2. Open the web app on your phone and install it (Chrome: ⋮ → Add to home screen or Install
-   app; Safari: Share → Add to Home Screen).
+2. On Android, install the app from [Releases](https://github.com/mattias/immersion-dashboard/releases/latest)
+   (`Immersion-Dashboard-…apk`; allow installing apps from your browser when asked). On an
+   iPhone, open the web app in Safari and choose Share → Add to Home Screen.
 3. Turn on **Sync between devices** there too and press ↻.
+
+The Android app is the web app opened by Chrome as an app of its own (a Trusted Web Activity), so
+it needs Chrome on the phone and is always up to date with the website.
 
 ### In a browser on a computer
 
@@ -126,7 +130,13 @@ npm install
 npm run serve        # the web app on http://localhost:8642
 npm run app:dev      # the Windows app, while developing
 npm run app:build    # the Windows installer in src-tauri/target/release/bundle/nsis
+node tools/android.mjs   # the Android app in tmp/, from the published web manifest
 ```
+
+The Android build needs JDK 17 and the Android SDK. Its signing key is created on first run in
+`~/.android-keys`, outside the repository; keep a backup, since updates must use the same key.
+For the app to open without Chrome's address bar, `https://<user>.github.io/.well-known/assetlinks.json`
+must list the key's fingerprint; the build writes that file to `android/assetlinks.json`.
 
 The Windows app is built with [Tauri](https://tauri.app). It needs Rust and the WebView2
 runtime, which Windows 10 and 11 already have.

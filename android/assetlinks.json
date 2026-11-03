@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.mattias.immersiondashboard",
+      "sha256_cert_fingerprints": [
+        "1E:15:83:2E:42:DA:22:66:46:EA:D9:A2:50:C4:99:F0:D2:63:EE:76:3B:D0:BA:14:A4:5F:50:65:07:37:BA:96"
+      ]
+    }
+  }
+]
