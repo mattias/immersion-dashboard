@@ -47,7 +47,7 @@ if (!process.argv.includes('--bygg')) {
 // Watching on the phone (android/app/src/main/java/.../titta) lives outside what Bubblewrap generates,
 // so the manifest entries and dependencies are put back after every regeneration.
 const TITTA_MANIFEST = `
-        <!-- Watching on the phone: counts Japanese video in YouTube, Netflix and Twitch. -->
+        <!-- Watching on the phone: counts Japanese video, music and podcasts in YouTube, YouTube Music, Netflix and Twitch. -->
         <service android:name=".titta.TittaTjanst"
             android:label="旅の記録 · Watching"
             android:exported="true"

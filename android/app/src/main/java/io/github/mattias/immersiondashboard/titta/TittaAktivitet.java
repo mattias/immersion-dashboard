@@ -82,7 +82,7 @@ public class TittaAktivitet extends Activity {
         lista.removeAllViews();
         Logg l = Logg.av(this);
         text("Watching on this phone", 22, true);
-        text("Counts Japanese video while it plays in YouTube, Netflix and Twitch, and uploads it to the dashboard's hidden app folder in "
+        text("Counts Japanese video, music and podcasts while they play in YouTube, YouTube Music, Netflix and Twitch, and uploads it to the dashboard's hidden app folder in "
             + "Google Drive. The dashboard shows it under Netflix, YouTube and Twitch after the next sync.", 14, false);
 
         text("1. Notification access", 17, true);
@@ -121,7 +121,7 @@ public class TittaAktivitet extends Activity {
 
         text("What the apps report", 17, true);
         JSONObject s = l.senaste;
-        if (s.length() == 0) text("Nothing yet. Play something in YouTube, Netflix or Twitch.", 13, false);
+        if (s.length() == 0) text("Nothing yet. Play something in YouTube, YouTube Music, Netflix or Twitch.", 13, false);
         for (Iterator<String> it = s.keys(); it.hasNext(); ) {
             String k = it.next();
             text(k + "\n" + s.optString(k), 12, false).setTypeface(Typeface.MONOSPACE);

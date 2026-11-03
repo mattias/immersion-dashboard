@@ -231,8 +231,8 @@ export function mpvResultat(text) {
 
 // Immersion Web, the browser extension, and the Android app's watching on the phone: immersion-web.json and
 // immersion-phone.json hold totals per (date, site, video), Japanese only, in the same format.
-// Videos are summed per series over both files: the channel on YouTube and Twitch, the show on Netflix.
-const SAJTER = { youtube: 'YouTube', netflix: 'Netflix', twitch: 'Twitch' };
+// Videos are summed per series over both files: the channel on YouTube and Twitch, the artist on YouTube Music, the show on Netflix.
+const SAJTER = { youtube: 'YouTube', ytmusic: 'YouTube Music', netflix: 'Netflix', twitch: 'Twitch' };
 export function webbResultat(...texter) {
   const entries = texter.flatMap(text => {
     const j = JSON.parse(text);

@@ -97,12 +97,14 @@ test('Immersion Web entries are summed per site and series', () => {
     { date: '2026-11-03', site: 'netflix', id: '2', series: 'Frieren', title: 'B', episode: 4, seconds: 1380, active: 600, chars: 250 },
     { date: '2026-11-03', site: 'netflix', id: '3', series: 'Frieren', title: 'C', episode: 5, seconds: 30, active: 30, chars: 5 },
     { date: '2026-11-03', site: 'youtube', id: 'x', series: 'ANNnewsCH', title: 'ニュース', episode: null, seconds: 600, active: 0, chars: 0 },
-    { date: '2026-11-04', site: 'twitch', id: 'stylishnoob4', series: 'stylishnoob4', title: '配信', episode: null, seconds: 20, active: 20, chars: 0 }
+    { date: '2026-11-04', site: 'twitch', id: 'stylishnoob4', series: 'stylishnoob4', title: '配信', episode: null, seconds: 20, active: 20, chars: 0 },
+    { date: '2026-11-04', site: 'ytmusic', id: 'm', series: 'YOASOBI', title: '夜に駆ける', episode: null, seconds: 240, active: 0, chars: 0 }
   ] });
   const r = webbResultat(fil);
   assert.deepEqual(r.akt, [
     ['2026-11-03', 'titta', 'Frieren', 555, 47.5, 'Netflix', [3, 4]],
-    ['2026-11-03', 'titta', 'ANNnewsCH', 0, 10, 'YouTube']
+    ['2026-11-03', 'titta', 'ANNnewsCH', 0, 10, 'YouTube'],
+    ['2026-11-04', 'titta', 'YOASOBI', 0, 4, 'YouTube Music']
   ]);
   // The same show watched in mpv the same day counts once, the larger entry.
   const d = kombinera([r, mpvResultat(JSON.stringify({ date: '2026-11-03', file: 'f.mkv', title: 'Frieren', anilist_id: 1, seconds: 600, chars: 100, episode: 3 }))]);

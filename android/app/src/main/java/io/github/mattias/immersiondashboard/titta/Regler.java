@@ -20,7 +20,8 @@ import java.util.regex.Pattern;
 public final class Regler {
     private Regler() {}
 
-    public static final String YOUTUBE = "com.google.android.youtube", NETFLIX = "com.netflix.mediaclient", TWITCH = "tv.twitch.android.app";
+    public static final String YOUTUBE = "com.google.android.youtube", NETFLIX = "com.netflix.mediaclient", TWITCH = "tv.twitch.android.app",
+        YTMUSIC = "com.google.android.apps.youtube.music";
 
     /** What one media session shows right now. kanal is what a choice is remembered for: the channel, or the show on Netflix. */
     public static final class Info {
@@ -44,6 +45,8 @@ public final class Regler {
         switch (paket) {
             // YouTube: title = video, artist = channel.
             case YOUTUBE: return new Info("youtube", mediaId != null ? mediaId : titel, artist, titel, artist);
+            // YouTube Music: title = song, artist = artist. Choices are remembered per artist.
+            case YTMUSIC: return new Info("ytmusic", mediaId != null ? mediaId : titel, artist, titel, artist);
             // Twitch only gives the channel name, as the title.
             case TWITCH: return new Info("twitch", titel.toLowerCase(Locale.ROOT), titel, artist, titel);
             case NETFLIX: {
@@ -117,7 +120,7 @@ public final class Regler {
         return datum(c);
     }
 
-    private static final String[] SAJTER = { "youtube", "YouTube", "netflix", "Netflix", "twitch", "Twitch" };
+    private static final String[] SAJTER = { "youtube", "YouTube", "netflix", "Netflix", "twitch", "Twitch", "ytmusic", "YouTube Music" };
     private static String sajtNamn(String s) {
         for (int i = 0; i < SAJTER.length; i += 2) if (SAJTER[i].equals(s)) return SAJTER[i + 1];
         return s;

@@ -23,11 +23,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Counts time while YouTube, Netflix or Twitch plays on the phone. Notification access is only what lets the app
+ * Counts time while YouTube, YouTube Music, Netflix or Twitch plays on the phone. Notification access is only what lets the app
  * see other apps' media sessions; no notifications are read. Active = the screen is on, otherwise passive.
  */
 public class TittaTjanst extends NotificationListenerService {
-    static final Set<String> APPAR = new HashSet<>(Arrays.asList(Regler.YOUTUBE, Regler.NETFLIX, Regler.TWITCH));
+    static final Set<String> APPAR = new HashSet<>(Arrays.asList(Regler.YOUTUBE, Regler.YTMUSIC, Regler.NETFLIX, Regler.TWITCH));
     private static final long TICK = 10_000, MAX_STEG = 30_000, UPPLADDNING = 5 * 60_000, MIN_MELLAN = 60_000;
 
     private static final class Spel {

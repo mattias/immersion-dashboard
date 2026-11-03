@@ -18,6 +18,11 @@ public class ReglerTest {
         Regler.Info t = Regler.info(Regler.TWITCH, "fps_shaka", null, null, null);
         assertEquals("fps_shaka", t.id);
         assertEquals("fps_shaka", t.kanal);
+        Regler.Info m = Regler.info(Regler.YTMUSIC, "夜に駆ける", "YOASOBI", "THE BOOK", null);
+        assertEquals("ytmusic", m.sajt);
+        assertEquals("YOASOBI", m.kanal);
+        assertEquals(Boolean.TRUE, Regler.auto(m));
+        assertNull(Regler.auto(Regler.info(Regler.YTMUSIC, "Idol", "YOASOBI", null, null)));
         assertNull(Regler.info("com.spotify.music", "x", "y", null, null));
         assertNull(Regler.info(Regler.YOUTUBE, " ", "y", null, null));
     }
