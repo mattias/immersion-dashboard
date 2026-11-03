@@ -1712,7 +1712,7 @@ dependencies = [
 
 [[package]]
 name = "immersion-dashboard"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "base64 0.22.1",
  "rand 0.8.8",
