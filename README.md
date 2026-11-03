@@ -12,7 +12,7 @@ It comes in two forms that share the same code:
 
 - **The Windows app** reads your apps' data where it already is, in `%APPDATA%`. It finds the
   usual folders by itself, so setting it up is mostly clicking Start.
-- **The web app** runs in any browser and installs as an app on Android, iPhone and desktop.
+- **The web app** at https://mattias.github.io/immersion-dashboard/ runs in any browser and installs as an app on Android, iPhone and desktop.
   On a phone it shows what your computer read.
 
 Browsers are not allowed to open folders inside `%APPDATA%` (or `~/Library/Application Support`
@@ -23,7 +23,7 @@ why the Windows app exists.
 
 ### On Windows
 
-1. Install the Windows app and open it.
+1. Download the installer from [Releases](https://github.com/mattias/immersion-dashboard/releases/latest), run it and open the app. It is not code-signed, so Windows may ask you to confirm (More info → Run anyway).
 2. The apps it found are already ticked. Untick any you do not want, choose a Mokuro or sleep
    file if you use those, and optionally a background image.
 3. Press **Start the journey**.
