@@ -191,15 +191,11 @@ async function synkaMoln(fraga, webbToken) {
     if (token instanceof Error) throw token;
     ({ id, data } = await moln.hamta(token));
   }
-  let andrat = false;
   for (const [k, r] of Object.entries(data?.resultat || {})) {
     if (!S.kallor[k]) continue;
     const har = await hamta('resultat:' + k);
     if (!har || r.tid > har.tid) await spara('resultat:' + k, { ...r, har: false });
-    // A source with data from the other device is shown, unless it was turned off here.
-    if (!S.kallor[k].pa && !S.kallor[k].avstangd) { S.kallor[k].pa = true; andrat = true; }
   }
-  if (andrat) await spara('installningar', S);
   const ut = await exportera();
   if (APP) await invoke('drive_spara', { data: JSON.stringify(ut) });
   else await moln.spara(token, id, ut);
@@ -212,9 +208,10 @@ async function ritaOm(fel) {
   const res = [];
   let senast = 0;
   for (const k of KALLOR) {
-    if (!S.kallor[k.id].pa) continue;
     const r = await hamta('resultat:' + k.id);
-    if (r) { res.push(r); senast = Math.max(senast, r.tid); }
+    // The tick means "read on this device". What another device read and synced is always shown,
+    // so a phone with every source unticked still shows the computer's data.
+    if (r && (S.kallor[k.id].pa || r.har === false)) { res.push(r); senast = Math.max(senast, r.tid); }
   }
   visa(kombinera(res), { mal: S.mal, uppdaterad: senast ? klockslag(senast) : '', fel });
 }
@@ -423,7 +420,6 @@ function kopplaDialog() {
     let omrita = false;
     if (t.dataset.pa) {
       S.kallor[t.dataset.pa].pa = t.checked;
-      S.kallor[t.dataset.pa].avstangd = !t.checked;
       delete status[t.dataset.pa];
       omrita = true;
     } else if ('moln' in t.dataset) {
