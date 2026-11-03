@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/remote-schema.json",
+  "identifier": "garmin",
+  "description": "Garmin Connect's own page in the sign-in window. It may only hand back sleep data.",
+  "windows": [
+    "garmin"
+  ],
+  "remote": {
+    "urls": [
+      "https://connect.garmin.com/*"
+    ]
+  },
+  "permissions": [
+    "allow-garmin-svar"
+  ]
+}

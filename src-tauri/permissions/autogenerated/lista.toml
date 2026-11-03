@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-lista"
+description = "Enables the lista command without any pre-configured scope."
+commands.allow = ["lista"]
+
+[[permission]]
+identifier = "deny-lista"
+description = "Denies the lista command without any pre-configured scope."
+commands.deny = ["lista"]

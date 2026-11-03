@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-valj"
+description = "Enables the valj command without any pre-configured scope."
+commands.allow = ["valj"]
+
+[[permission]]
+identifier = "deny-valj"
+description = "Denies the valj command without any pre-configured scope."
+commands.deny = ["valj"]

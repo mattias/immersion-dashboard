@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-typ"
+description = "Enables the typ command without any pre-configured scope."
+commands.allow = ["typ"]
+
+[[permission]]
+identifier = "deny-typ"
+description = "Denies the typ command without any pre-configured scope."
+commands.deny = ["typ"]

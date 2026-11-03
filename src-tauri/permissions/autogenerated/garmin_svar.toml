@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-garmin-svar"
+description = "Enables the garmin_svar command without any pre-configured scope."
+commands.allow = ["garmin_svar"]
+
+[[permission]]
+identifier = "deny-garmin-svar"
+description = "Denies the garmin_svar command without any pre-configured scope."
+commands.deny = ["garmin_svar"]

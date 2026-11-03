@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-google-inloggad"
+description = "Enables the google_inloggad command without any pre-configured scope."
+commands.allow = ["google_inloggad"]
+
+[[permission]]
+identifier = "deny-google-inloggad"
+description = "Denies the google_inloggad command without any pre-configured scope."
+commands.deny = ["google_inloggad"]

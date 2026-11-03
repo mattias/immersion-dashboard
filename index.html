@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>旅の記録 · Immersion Dashboard</title>
+<meta name="description" content="A private dashboard for your Japanese immersion. Your data stays in this browser.">
+<meta name="theme-color" content="#0b1020">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="scen" aria-hidden="true">
+  <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0f22"/><stop offset=".55" stop-color="#1b2550"/><stop offset=".8" stop-color="#3a3f6e"/><stop offset="1" stop-color="#5a4f72"/></linearGradient>
+      <radialGradient id="glans"><stop offset="0" stop-color="#fbf6e8"/><stop offset=".6" stop-color="#e9e2cc" stop-opacity=".9"/><stop offset="1" stop-color="#e9e2cc" stop-opacity="0"/></radialGradient>
+      <radialGradient id="blomma"><stop offset="0" stop-color="#d8e8ff"/><stop offset=".5" stop-color="#7fb0f5"/><stop offset="1" stop-color="#7fb0f5" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect width="1600" height="1000" fill="url(#himmel)"/>
+    <g id="stjarnor" fill="#fff"></g>
+    <circle cx="1240" cy="230" r="150" fill="url(#glans)" opacity=".35"/>
+    <circle cx="1240" cy="230" r="62" fill="#f6f1e2"/>
+    <path d="M0 720 L120 640 L240 690 L380 590 L520 670 L640 610 L800 690 L950 600 L1100 660 L1260 570 L1420 650 L1600 600 L1600 1000 L0 1000Z" fill="#232a4f" opacity=".9"/>
+    <path d="M0 790 L160 730 L330 770 L520 715 L700 780 L900 730 L1080 780 L1290 720 L1460 770 L1600 740 L1600 1000 L0 1000Z" fill="#1a2040"/>
+    <g transform="translate(1180 770)" fill="#111632"><path d="M-6 0 L-4 -120 L4 -120 L6 0Z"/><circle cx="0" cy="-150" r="56"/><circle cx="-44" cy="-120" r="38"/><circle cx="46" cy="-118" r="40"/><circle cx="-14" cy="-196" r="34"/><circle cx="28" cy="-186" r="30"/></g>
+    <path d="M0 860 Q400 800 800 840 T1600 820 L1600 1000 L0 1000Z" fill="#141933"/>
+    <g id="ang"></g>
+  </svg>
+</div>
+<div class="bild" id="bild" aria-hidden="true"></div>
+<div class="slojor" aria-hidden="true"></div>
+<svg class="cirkel" viewBox="0 0 400 400" aria-hidden="true">
+  <defs><path id="bana" d="M200 200 m-150 0 a150 150 0 1 1 300 0 a150 150 0 1 1 -300 0"/></defs>
+  <g fill="none" stroke="#dcc08a" stroke-width="1"><circle cx="200" cy="200" r="190"/><circle cx="200" cy="200" r="170"/><circle cx="200" cy="200" r="132"/><circle cx="200" cy="200" r="70"/><polygon points="200,68 314,266 86,266"/><polygon points="200,332 86,134 314,134"/><polygon points="200,130 261,235 139,235" opacity=".7"/></g>
+  <text fill="#dcc08a" font-family="Shippori Mincho" font-size="15" letter-spacing="6"><textPath href="#bana">言葉を集める旅　聞く　読む　話す　千年の言葉を集める旅　聞く　読む　話す　</textPath></text>
+</svg>
+<main>
+  <div class="verktyg">
+    <button class="pil" id="synk" aria-label="Sync your sources" title="Sync your sources"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg></button>
+    <button class="pil" id="installningar" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6 2.4 2.8-.7.7 2.8 2.4 1.6-1.4 2.6 1.4 2.6-2.4 1.6-.7 2.8-2.8-.7L12 21.2l-1.6-2.4-2.8.7-.7-2.8-2.4-1.6L5.9 12 4.5 9.4l2.4-1.6.7-2.8 2.8.7z"/></svg></button>
+  </div>
+  <header>
+    <div><h1>旅の記録</h1><div class="under" id="uppdaterad"></div></div>
+    <nav class="styr" aria-label="Period">
+      <div class="seg" id="vyer"></div>
+      <div class="bladdra">
+        <button class="pil" id="bak" aria-label="Previous period">‹</button>
+        <div id="period" aria-live="polite"></div>
+        <button class="pil" id="fram" aria-label="Next period">›</button>
+        <button class="pil idagknapp" id="idag" aria-label="Go to today">今</button>
+        <button class="pil delaknapp" id="dela" aria-label="Create an image to share" title="Create an image to share"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
+      </div>
+    </nav>
+  </header>
+  <section class="kort tomstart" id="tomstart" hidden><h2 style="justify-content:center"><b>旅の始まり</b> Your journey starts here</h2><p>Nothing has been read yet. Choose the apps you use, and the dashboard will collect your reading, games, manga, anime and Anki reviews. Everything stays in this browser.</p><button class="knapp stor" id="kommIgang">Get started</button></section>
+  <section class="rad topp">
+    <div class="kort"><h2><b>今日の魔力</b> Today</h2><div class="hjalte"><div class="ring" id="ring"></div><div id="idagrader"></div></div></div>
+    <div class="kort"><h2><b>旅の連続</b> Streaks</h2><div class="streaks" id="streaks"></div></div>
+  </section>
+  <section class="nyckeltal" id="nyckeltal"></section>
+  <section class="rad mitten">
+    <div class="kort">
+      <div class="korthuvud"><h2><b>旅の歩み</b> <span id="diagramrubrik"></span></h2><div class="seg" id="matt"></div></div>
+      <div class="legend" id="legend"></div>
+      <div id="diagram"></div>
+    </div>
+    <div class="kort"><div class="korthuvud"><h2><b>旅路</b> What you did</h2></div><div class="lista resa" id="titlar"></div></div>
+  </section>
+  <section class="kort">
+    <div class="korthuvud"><h2><b>季節の巡り</b> <span id="kalrubrik"></span></h2><div class="skala" id="skala"></div></div>
+    <div class="kalender" id="kalbox"><div class="kal" id="kal"></div></div>
+  </section>
+  <section class="rad tvA" id="sistarad">
+    <div class="kort" id="ankikort"><div class="korthuvud"><h2><b>魔導書</b> Anki</h2></div><div class="lista" id="ankilista"></div></div>
+    <div class="kort"><div class="korthuvud"><h2><b>記録</b> <span id="tabellrubrik"></span></h2></div><div class="tabell" id="tabell"></div></div>
+  </section>
+</main>
+<div id="tips" role="status"></div>
+<div class="delning" id="delning" hidden>
+  <div class="delruta kort" role="dialog" aria-modal="true" aria-labelledby="delrubrik">
+    <div class="korthuvud"><h2 id="delrubrik"><b>旅の便り</b> Share image</h2><button class="pil" id="delstang" aria-label="Close">×</button></div>
+    <img id="delbild" alt="Image of the current period, ready to share">
+    <div class="delknappar"><span class="liten" id="delstatus"></span><div class="seg"><button id="kopiera">Copy image</button><button id="spara">Download</button></div></div>
+  </div>
+</div>
+<div id="meddelande" role="status" hidden></div>
+<dialog class="installning" id="dialog" aria-labelledby="dialogrubrik"></dialog>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

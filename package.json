@@ -1,0 +1,19 @@
+{
+  "name": "immersion-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A private immersion dashboard for Japanese learners that runs entirely in the browser.",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "npx --yes http-server@14.1.1 -p 8642 -c-1 .",
+    "build:web": "node tools/bygg-webb.mjs",
+    "app:dev": "node tools/tauri.mjs dev",
+    "app:build": "node tools/tauri.mjs build"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "sql.js": "^1.15.2"
+  }
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-drive-hamta"
+description = "Enables the drive_hamta command without any pre-configured scope."
+commands.allow = ["drive_hamta"]
+
+[[permission]]
+identifier = "deny-drive-hamta"
+description = "Denies the drive_hamta command without any pre-configured scope."
+commands.deny = ["drive_hamta"]

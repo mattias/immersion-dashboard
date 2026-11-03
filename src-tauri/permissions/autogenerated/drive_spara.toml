@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-drive-spara"
+description = "Enables the drive_spara command without any pre-configured scope."
+commands.allow = ["drive_spara"]
+
+[[permission]]
+identifier = "deny-drive-spara"
+description = "Denies the drive_spara command without any pre-configured scope."
+commands.deny = ["drive_spara"]
