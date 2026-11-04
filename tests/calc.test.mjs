@@ -1,7 +1,7 @@
 process.env.TZ = 'Europe/Stockholm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, webbResultat, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
+import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, webbResultat, rubiResultat, rubiTecken, csvRader, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
 
 const ms = s => new Date(s).getTime();
 
@@ -110,4 +110,49 @@ test('Immersion Web entries are summed per site and series', () => {
   const d = kombinera([r, mpvResultat(JSON.stringify({ date: '2026-11-03', file: 'f.mkv', title: 'Frieren', anilist_id: 1, seconds: 600, chars: 100, episode: 3 }))]);
   assert.deepEqual(d['2026-11-03'].akt.map(a => [a.t, a.s]), [['Frieren', 'Netflix'], ['ANNnewsCH', 'YouTube']]);
   assert.throws(() => webbResultat('{"app":"something else"}'));
+});
+
+// Rubi for Vita's history.csv: the five ExStatic columns, 36 more, then characters (42nd) and line_source.
+const RUBI_HUVUD = 'uuid,given_identifier,name,line,time,' + Array.from({ length: 36 }, (_, i) => 'x' + i).join(',') + ',characters,line_source\n';
+const rubiRad = (spel, nr, namn, rad, t, c) => `"vita-${spel}","vjo-${nr}-0","${namn}","${rad.replaceAll('"', '""')}",${t.toFixed(6)},${',0'.repeat(36).slice(1)},${c},"hook"\n`;
+const t0 = ms('2026-11-03T20:00:00+01:00') / 1000;
+
+test('Rubi: the characters of a line as Rubi counts them', () => {
+  assert.equal(rubiTecken('「昨日、すき焼きを食べました！」'), 12);
+  assert.equal(rubiTecken('HP 4778万 ー々ｶﾀｶﾅ'), 2 + 5 + 2 + 4);
+});
+
+test('Rubi: quoted cells with line breaks and quotes', () => {
+  assert.deepEqual(csvRader('a,"b\r\nc","say ""hi"""\r\n1,2,3'), [['a', 'b\r\nc', 'say "hi"'], ['1', '2', '3']]);
+});
+
+test('Rubi: characters and adaptive reading time per day and game', () => {
+  const text = RUBI_HUVUD
+    + rubiRad('PCSG00001', 1, 'Game A', 'ああ', t0, 20)
+    + rubiRad('PCSG00001', 2, 'Game A', 'いい', t0 + 10, 10)
+    + rubiRad('PCSG00001', 3, 'Game A', 'うう', t0 + 400, 5) // a long pause: the line before gets its cap, not 390 s
+    + rubiRad('PCSG00002', 4, 'Game B', 'ええ', t0 + 410, 7); // another game breaks the interval: Game A's last line gets no time
+  const r = rubiResultat([text, text], { maxFart: 20000 }); // the same records twice count once
+  assert.equal(r.akt.length, 1);
+  const [dag, typ, titel, c, m, kalla] = r.akt[0];
+  assert.deepEqual([dag, typ, titel, c, kalla], ['2026-11-03', 'spel', 'Game A', 35, 'Rubi']);
+  // 10 s, then the 10-character line's cap: 2.5 × 10 × its pace (1.2 s a character less 1/32 after a faster line).
+  const takt = 18750 - (18750 >> 5);
+  assert.ok(Math.abs(m - (10 + takt * 10 * 160 / 1e6) / 60) < 1e-9, String(m));
+});
+
+test('Rubi: skip mode takes out quick runs of long lines', () => {
+  let text = RUBI_HUVUD;
+  for (let i = 0; i < 6; i++) text += rubiRad('PCSG00001', i, 'Game A', 'x', t0 + i * 0.5, 15);
+  text += rubiRad('PCSG00001', 9, 'Game A', 'x', t0 + 13, 15);
+  const [, , , c, m] = rubiResultat([text], { maxFart: 20000 }).akt[0];
+  // The six skimmed lines count nothing; the line the skip landed on, and the last line, count.
+  assert.equal(c, 30);
+  assert.ok(Math.abs(m - 10.5 / 60) < 1e-9, String(m));
+});
+
+test('Rubi: an older file without the characters column counts the line itself, and a cut last record is skipped', () => {
+  const text = 'uuid,given_identifier,name,line,time\n"vita-PCSG00001","vjo-1-0","Game A","今日は",' + t0.toFixed(6) + '\n'
+    + '"vita-PCSG00001","vjo-2-0","Game A","明日",' + (t0 + 5).toFixed(6) + '\n"vita-PCSG00001","vjo-3-0","Game A","切れ';
+  assert.deepEqual(rubiResultat([text], { maxFart: 20000 }).akt.map(a => a.slice(0, 4)), [['2026-11-03', 'spel', 'Game A', 5]]);
 });

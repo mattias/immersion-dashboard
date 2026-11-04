@@ -253,6 +253,124 @@ export function webbResultat(...texter) {
   return rent(r);
 }
 
+// Rubi for Vita: history.csv, one record per line of text Rubi read in a game on the PS Vita (docs/ocr-history.md in
+// bee-san/Rubi_for_vita). Cells are quoted, and a line may hold line breaks.
+export function csvRader(text) {
+  const ut = [];
+  let rad = [], cell = '', i = 0, citat = false;
+  const n = text.length;
+  if (text.charCodeAt(0) === 0xfeff) i = 1;
+  for (; i < n; i++) {
+    const c = text[i];
+    if (citat) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; } else citat = false;
+      } else cell += c;
+    } else if (c === '"') citat = true;
+    else if (c === ',') { rad.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      rad.push(cell);
+      ut.push(rad);
+      rad = [];
+      cell = '';
+    } else cell += c;
+  }
+  // A last record without a line break may have been cut by a power loss; its time cell then fails the check below.
+  if (cell || rad.length) { rad.push(cell); ut.push(rad); }
+  return ut;
+}
+
+// The characters Rubi counts (core/reading_chars.h): Japanese letters (kanji, kana, ー, the iteration marks,
+// half-width katakana) and ASCII letters and digits. Punctuation and spaces count nothing.
+const RUBI_TECKEN = /[々-〇〡-〩〱-〵〸-〼ぁ-ゖ゙゚ゝ-ゟァ-ヺー-ヿㇰ-ㇿ㐀-䶿一-鿿豈-舘並-龎ｦ-ﾟ\u{1B000}-\u{1B122}\u{20000}-\u{2A6DF}\u{2A700}-\u{2EE5D}\u{2F800}-\u{2FA1D}\u{30000}-\u{33479}A-Za-z0-9]/gu;
+export const rubiTecken = s => (String(s).match(RUBI_TECKEN) || []).length;
+
+// Rubi's reading time, its default `adaptive` rule (core/history_lines.c vjo_reading_time_add): each line gets the time
+// to the next line of its game, at most 2.5 times what the reader's pace would take for it, 2 s to 5 minutes. The pace
+// per game is a running 75th percentile of the time a character took, in 64 µs units. Skip mode: three lines of 12+
+// characters in a row, each under 1 s before the next, and the quick lines after them count neither characters nor time.
+const R_START = 18750, R_MIN = 32, R_GOLV = 2e6, R_TAK = 3e8, R_PER = 160, SKUMMA_US = 1e6, SKUMMA_TECKEN = 12, SKUMMA_RADER = 3;
+function rubiKredit(gap, tecken, takt) {
+  const g = Math.min(gap, 0xffffffff), p0 = takt || R_START, vanta = p0 * tecken;
+  const tak = Math.max(vanta >= Math.floor(R_TAK / R_PER) ? R_TAK : vanta * R_PER, R_GOLV);
+  if (tecken >= 5 && g >= 1e6 && g <= R_TAK) {
+    const p = Math.floor(g / 64) > vanta ? p0 + 3 * (p0 >> 5) : p0 - (p0 >> 5);
+    takt = Math.min(Math.max(p, R_MIN), 0xffff);
+  }
+  return [Math.min(g, tak), takt];
+}
+
+// texter: one or more copies of history.csv. A record in more than one copy counts once (uuid and given_identifier).
+export function rubiResultat(texter, o) {
+  const sett = new Set(), poster = [];
+  for (const text of texter) {
+    let kol = null;
+    for (const rad of csvRader(text)) {
+      if (rad[0] === 'uuid') {
+        kol = Object.fromEntries(rad.map((n, i) => [n, i]));
+        continue;
+      }
+      if (!kol || rad.length < 5) continue;
+      const uuid = rad[kol.uuid]?.trim(), id = rad[kol.given_identifier]?.trim(), tid = rad[kol.time]?.trim();
+      if (!uuid || !id || !/^\d+(\.\d+)?$/.test(tid || '')) continue;
+      const t = Number(tid);
+      if (!(t > 0 && t < 32503680000)) continue;
+      const nyckel = uuid + '\u0000' + id;
+      if (sett.has(nyckel)) continue;
+      sett.add(nyckel);
+      // The 42nd cell holds the count since Rubi 0.9.0, even in a file whose header line is older.
+      const lagrad = rad[41]?.trim();
+      const [hel, dec = ''] = tid.split('.');
+      poster.push({
+        // Some game titles hold a line break (この大空に、 / 翼をひろげて CS).
+        spel: uuid, namn: (rad[kol.name] || '').replace(/\s*[\r\n]+\s*/g, ' ').trim() || uuid, t,
+        us: dec.length === 6 ? Number(hel) * 1e6 + Number(dec) : Math.round(t * 1e6),
+        c: /^\d{1,9}$/.test(lagrad || '') ? Number(lagrad) : rubiTecken(rad[kol.line] ?? '')
+      });
+    }
+  }
+  poster.sort((a, b) => a.t - b.t);
+  const takter = new Map(), kredit = [];
+  for (let i = 0; i < poster.length; i++) {
+    const p = poster[i], nasta = poster[i + 1];
+    let k = 0;
+    if (nasta && nasta.spel === p.spel && nasta.us > p.us) {
+      const [kr, takt] = rubiKredit(nasta.us - p.us, p.c, takter.get(p.spel) || 0);
+      k = kr;
+      takter.set(p.spel, takt);
+    }
+    kredit.push(k);
+  }
+  const bort = new Set();
+  let serie = [], skip = false;
+  for (let i = 0; i < poster.length; i++) {
+    const k = kredit[i];
+    if (!k || k >= SKUMMA_US) { serie = []; skip = false; }
+    else if (skip) bort.add(i);
+    else if (poster[i].c >= SKUMMA_TECKEN) {
+      serie.push(i);
+      if (serie.length === SKUMMA_RADER) { serie.forEach(j => bort.add(j)); serie = []; skip = true; }
+    }
+  }
+  // The latest name a game was written with names all its days.
+  const namn = new Map(poster.map(p => [p.spel, p.namn])), per = new Map();
+  poster.forEach((p, i) => {
+    if (bort.has(i)) return;
+    const dag = lokal(p.t), k = dag + '\u0000' + p.spel;
+    if (!per.has(k)) per.set(k, { dag, spel: p.spel, c: 0, s: 0 });
+    const x = per.get(k);
+    x.c += p.c;
+    x.s += kredit[i] / 1e6;
+  });
+  const r = nyttResultat();
+  for (const x of per.values()) {
+    const m = x.s / 60;
+    r.lagg(x.dag, 'spel', namn.get(x.spel), Math.min(x.c, Math.trunc(m / 60 * o.maxFart)), m, 'Rubi');
+  }
+  return rent(r);
+}
+
 // Sleep per night from a CSV file, such as the one garmin.py writes. Swedish or English column names.
 export function somnResultat(text) {
   const rader = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(r => r.trim());

@@ -1,7 +1,7 @@
 // Ties the app together: settings, where each source is, syncing, setup, export and import.
 // Runs both as the Windows app (reads AppData directly) and as the web app (folder handles, or data synced from the computer).
 import { kombinera } from './calc.js';
-import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasWebb, lasSomn, Kallfel } from './sources.js';
+import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasWebb, lasRubi, lasSomn, Kallfel } from './sources.js';
 import { hamta, spara, radera, installningar, mapp, harBehorighet } from './store.js';
 import { visa, sattBild } from './view.js';
 import { APP, invoke, appMapp, appFil, ankiConnectViaApp } from './plattform.js';
@@ -22,6 +22,8 @@ const KALLOR = [
     sokvag: { win: '%APPDATA%\\Anki2', mac: '~/Library/Application Support/Anki2', linux: '~/.local/share/Anki2' } },
   { id: 'gsm', namn: 'GameSentenceMiner', text: 'Visual novels and games read with GSM.', typ: 'mapp', appdata: true,
     sokvag: { win: '%APPDATA%\\GameSentenceMiner', mac: '~/.config/GameSentenceMiner', linux: '~/.config/GameSentenceMiner' } },
+  { id: 'rubi', namn: 'Rubi for Vita', text: 'Games read on the PS Vita with Rubi.', typ: 'mapp', drive: true,
+    hjalp: 'Rubi Drive Sync on the Vita uploads rubi-history.csv to the folder Immersion Dashboard in My Drive, and the dashboard reads it from there when you sync with Google. Without it, copy ux0:data/VitaJPOverlay/history.csv with VitaShell (FTP or USB) to a folder and choose that folder.' },
   { id: 'lasare', namn: 'Google Drive: ttu, yatsu, Hoshi Reader and Mokuro', text: 'Books and manga, through the folders these readers sync to Google Drive.', typ: 'mapp',
     sokvag: { win: 'G:\\My Drive', mac: '~/Google Drive/My Drive', linux: '~/GoogleDrive' },
     hjalp: 'Needs Google Drive for desktop. Choose the top of your Drive, the folder that holds ttu-reader-data, Hoshi Reader or mokuro-reader.' },
@@ -107,6 +109,14 @@ async function lasGarmin(fraga) {
 }
 
 let fragaNu = false, tokenNu = null;
+// A file another app put in the dashboard's app folder in Google Drive, or null when there is none.
+async function driveText(namn) {
+  if (APP) return invoke('drive_las', { namn, fraga: fragaNu });
+  const t = await tokenNu;
+  if (!t) throw new Kallfel('Press ↻ to fetch from Google Drive.');
+  if (t instanceof Error) throw new Kallfel(t.message);
+  return moln.hamtaText(t, namn);
+}
 function las(k, p) {
   const o = valfritt(k.id);
   if (k.id === 'anki') return lasAnkiKalla(p, o);
@@ -115,13 +125,8 @@ function las(k, p) {
   if (k.id === 'mokuro') return lasMokuro(p, o);
   if (k.id === 'somn') return lasSomn(p);
   if (k.id === 'garmin') return lasGarmin(fragaNu);
-  if (k.id === 'webb') return lasWebb(async namn => {
-    if (APP) return invoke('drive_las', { namn, fraga: fragaNu });
-    const t = await tokenNu;
-    if (!t) throw new Kallfel('Press ↻ to fetch from Google Drive.');
-    if (t instanceof Error) throw new Kallfel(t.message);
-    return moln.hamtaText(t, namn);
-  });
+  if (k.id === 'webb') return lasWebb(driveText);
+  if (k.id === 'rubi') return lasRubi(p, o, molnFinns() ? driveText : null);
   return lasMpv(p);
 }
 
@@ -133,7 +138,7 @@ async function synka(fraga) {
   $('synk').classList.add('snurrar');
   const medMoln = molnFinns() && S.moln.pa;
   // Immersion Web is read from Drive even when the dashboard's own copy is not synced.
-  const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa);
+  const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa || S.kallor.rubi.pa);
   const webbToken = behoverToken && (fraga || moln.harToken()) ? moln.begarToken().catch(e => e) : null;
   const fel = [];
   let lastes = 0, vantar = false;
@@ -149,9 +154,9 @@ async function synka(fraga) {
     }
     for (const k of KALLOR) {
       if (!S.kallor[k.id].pa || !(k.id in platser)) continue;
-      if (!platser[k.id] && !(k.id === 'anki' && (APP || S.kallor.anki.lage === 'connect'))) continue;
+      if (!platser[k.id] && !(k.id === 'anki' && (APP || S.kallor.anki.lage === 'connect')) && !(k.drive && molnFinns())) continue;
       // Google may only ask to sign in after a click, so until then the last result read is shown.
-      if (k.typ === 'drive' && !APP && !webbToken) { status[k.id] = { fel: 'Press ↻ to fetch from Google Drive.' }; continue; }
+      if ((k.typ === 'drive' || (k.drive && !platser[k.id])) && !APP && !webbToken) { status[k.id] = { fel: 'Press ↻ to fetch from Google Drive.' }; continue; }
       try {
         const r = await las(k, platser[k.id]);
         await spara('resultat:' + k.id, { akt: r.akt, anki: r.anki, minade: r.minade, somn: r.somn, tid: Date.now(), har: true });
@@ -271,6 +276,7 @@ async function kallStatus(k) {
     const h = await hamta('handtag:' + k.id);
     if (h) return `<span class="status ok">✓ ${esc(h.name)}${last}</span>`;
   }
+  if (k.drive && r?.har) return `<span class="status ok">✓ Google Drive${last}</span>`;
   if (r && !r.har) return `<span class="status ok">✓ From your other device · ${klockslag(r.tid)}</span>`;
   if (APP && k.id === 'anki') return '<span class="status">No Anki folder found. AnkiConnect is used if Anki is open.</span>';
   return `<span class="status">${k.typ === 'fil' ? 'No file chosen' : APP ? 'Not found in the usual place' : 'No folder chosen'}</span>`;
@@ -326,7 +332,7 @@ async function kallKort(k) {
   } else if (k.typ === 'fil') {
     val += `${filHjalp(k)}<div class="valrad">${knapp}${await kallStatus(k)}</div>`;
   } else {
-    val += `${k.hjalp ? `<p class="liten">${esc(k.hjalp)}</p>` : ''}${sokvagRad(k.sokvag[SYS])}
+    val += `${k.hjalp ? `<p class="liten">${esc(k.hjalp)}</p>` : ''}${k.sokvag ? sokvagRad(k.sokvag[SYS]) : ''}
       <div class="valrad">${knapp}${await kallStatus(k)}</div>`;
   }
   const f = falt(k);
@@ -422,6 +428,9 @@ function kopplaDialog() {
     let omrita = false;
     if (t.dataset.pa) {
       S.kallor[t.dataset.pa].pa = t.checked;
+      const kalla = KALLOR.find(k => k.id === t.dataset.pa);
+      // Sources read from Google Drive need its sign-in script ready before the next click.
+      if (t.checked && !APP && (kalla.drive || kalla.typ === 'drive')) moln.forbered();
       delete status[t.dataset.pa];
       omrita = true;
     } else if ('moln' in t.dataset) {
@@ -502,7 +511,7 @@ async function start() {
   $('kommIgang').onclick = oppnaDialog;
   await visaBakgrund();
   await ritaOm();
-  if (!APP && moln.finns && S.moln.pa) moln.forbered();
+  if (!APP && moln.finns && (S.moln.pa || S.kallor.webb.pa || S.kallor.rubi.pa)) moln.forbered();
   if (!S.valkommen) return oppnaDialog();
   // Reads again on every start, so most days need no click at all.
   await synka(false);

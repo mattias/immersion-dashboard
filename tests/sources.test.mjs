@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, utimes } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import initSqlJs from 'sql.js';
-import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMpv, lasWebb, Kallfel } from '../js/sources.js';
+import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMpv, lasWebb, lasRubi, Kallfel } from '../js/sources.js';
 import { laggPaWal, oppna, rader } from '../js/sqlite.js';
 import { nodeMapp } from '../tools/nodedir.mjs';
 
@@ -147,4 +147,19 @@ test('sleep CSV from garmin.py', async () => {
   const r = await lasSomn({ text: async () => csv });
   assert.deepEqual(r.somn, { '2026-11-01': { h: 7.02, p: 79, in: '23:26', ut: '06:50' }, '2026-11-03': { h: 6.5, p: null, in: '00:10', ut: '07:00' } });
   await assert.rejects(lasSomn({ text: async () => 'a,b' }), Kallfel);
+});
+
+test('Rubi for Vita: history.csv copies in a folder and rubi-history.csv from Google Drive count each record once', async () => {
+  const dir = join(tmp, 'rubi');
+  await mkdir(dir);
+  const t0 = ms('2026-11-03T20:00:00+01:00') / 1000;
+  const rad = (nr, rad, t) => `"vita-PCSG00001","vjo-${nr}-0","Game A","${rad}",${t.toFixed(6)}\n`;
+  const huvud = 'uuid,given_identifier,name,line,time\n';
+  await writeFile(join(dir, 'history.csv'), huvud + rad(1, 'ああ', t0) + rad(2, 'いい', t0 + 5));
+  await writeFile(join(dir, 'other.csv'), 'date,hours\n2026-11-03,7\n');
+  const o = { maxFart: 20000 };
+  const drive = async namn => namn === 'rubi-history.csv' ? huvud + rad(2, 'いい', t0 + 5) + rad(3, 'うう', t0 + 10) : null;
+  assert.deepEqual((await lasRubi(nodeMapp(dir), o, drive)).akt.map(a => a.slice(0, 4)), [['2026-11-03', 'spel', 'Game A', 6]]);
+  assert.deepEqual((await lasRubi(nodeMapp(dir), o, async () => { throw new Error('offline'); })).akt.map(a => a[3]), [4]);
+  await assert.rejects(lasRubi(null, o, async () => null), Kallfel);
 });

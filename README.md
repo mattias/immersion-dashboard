@@ -55,6 +55,7 @@ Windows, use the Windows app.
 | --- | --- | --- |
 | **Anki** | Reviews, time, retention, new cards, cards mined per day, reviews per deck | `%APPDATA%\Anki2` |
 | **GameSentenceMiner** | Visual novels and games | `%APPDATA%\GameSentenceMiner` |
+| **Rubi for Vita** | Games read on the PS Vita with [Rubi](https://github.com/bee-san/Rubi_for_vita) | `rubi-history.csv`, which the Vita app Rubi Drive Sync uploads to the folder **Immersion Dashboard** in My Drive, or `history.csv` copied from the Vita to a folder |
 | **ttu Ebook Reader, yatsu, Hoshi Reader, Mokuro** | Books and manga | The folders these readers sync to Google Drive, through Google Drive for desktop |
 | **Mokuro without Google Drive** | Manga read on reader.mokuro.app | A `mokuro-volumes.json` file, see below |
 | **immersion-mpv** | Anime and video watched in mpv | `%APPDATA%\immersion-mpv` |
@@ -85,6 +86,14 @@ the Garmin page may call nothing in the app except handing back the nights. The 
 fetches every night Garmin has; after that only new nights, from three days before the last
 one fetched, since watches sync late.
 
+**Rubi for Vita** saves every line it reads automatically in `ux0:data/VitaJPOverlay/history.csv`
+on the Vita (only in **Read text: Automatically**). The Vita app Rubi Drive Sync uploads it as
+`rubi-history.csv` to the folder **Immersion Dashboard** in My Drive, and the dashboard reads it
+from there when it syncs with Google (the web app, the Android app and the Windows app). The Windows
+app also finds that folder by itself through Google Drive for desktop. Without the Vita app, copy the
+file with VitaShell, over FTP or USB, to a folder and choose that folder. Every CSV in it that is a
+Rubi history counts, and a line found in several copies counts once, so older copies can stay.
+
 **Sleep from a file** is for other watches: a CSV with one night per row, a `date` (or `datum`)
 column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `wake`.
 
@@ -104,6 +113,10 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
   the entry with the most characters wins.
 - GameSentenceMiner days come from its daily summary. Days it has not summarised yet are
   counted from the text lines, without pauses longer than the pause limit.
+- Rubi lines count the characters Rubi counts (kanji, kana, letters and digits). The reading time
+  is Rubi's own adaptive rule, the one its △ view uses: each line gets the time until the next line
+  of the same game, at most 2.5 times what your reading pace would take for it, 2 s to 5 minutes.
+  Runs of skipped text count nothing. So pauses never count whole, and the pause limit is not used.
 - Mokuro page turns count new characters only, so paging back and forth does not add text.
 - immersion-mpv rows are increments and are summed per file and day.
 - Immersion Web counts only time when the video plays with sound and no ad runs, and only videos
@@ -115,9 +128,11 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
 - The Windows app reads only the source folders and files you see in the settings, and never
   immersion-mpv's `secrets.json`. It writes nothing to them.
 - Sync between devices uses the `drive.appdata` permission: one file in a hidden folder that
-  only this app can see. It cannot see anything else in your Drive. The Immersion Web extension
-  puts its own file, `immersion-web.json`, in the same folder, and the Android app puts
-  `immersion-phone.json` there. The dashboard reads both.
+  only this app can see. The Immersion Web extension puts its own file, `immersion-web.json`, in
+  the same folder, and the Android app puts `immersion-phone.json` there. The dashboard reads both.
+- It also asks for `drive.file`, which only reaches files this project's own apps created: here
+  `rubi-history.csv`, which Rubi Drive Sync keeps in My Drive, because Google lets a console sign in
+  with a code only for that permission. It cannot see anything else in your Drive.
 - Watching in the Android app needs notification access, only to see what other apps play
   (their media sessions); it reads no notifications. On a phone where the app was not installed
   from a store, first allow restricted settings: App info → ⋮ → Allow restricted settings.
@@ -174,8 +189,8 @@ hidden app folder belongs to the project.
 
 1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the
    **Google Drive API**.
-2. Set up Google Auth Platform (External) with the scope
-   `https://www.googleapis.com/auth/drive.appdata`. For your own use, leave it in **Testing** and
+2. Set up Google Auth Platform (External) with the scopes
+   `https://www.googleapis.com/auth/drive.appdata` and `https://www.googleapis.com/auth/drive.file`. For your own use, leave it in **Testing** and
    add your account under Test users; no branding or privacy policy is needed, but the Windows
    app asks you to sign in again every 7 days. To let anyone sign in, publish it; Google then
    wants a home page, a privacy policy and a verified domain, but no security review, since the
@@ -204,7 +219,7 @@ day by day against a `data.js` from the earlier Python version of this dashboard
 | File | Purpose |
 | --- | --- |
 | `js/calc.js` | Counting rules for every source |
-| `js/sources.js` | Reads Anki, GSM, the readers, Mokuro, immersion-mpv, Immersion Web and sleep |
+| `js/sources.js` | Reads Anki, GSM, Rubi, the readers, Mokuro, immersion-mpv, Immersion Web and sleep |
 | `js/sqlite.js` | Opens SQLite files with sql.js and applies the `-wal` file |
 | `js/store.js` | IndexedDB storage and the browser's folder adapter |
 | `js/plattform.js` | The Windows app's folder adapter and AnkiConnect bridge |

@@ -34,6 +34,7 @@ export const STANDARD = {
   kallor: {
     anki: { pa: false, lage: 'fil', rollover: 4, mining: 'Mining', wal: true, profil: '', url: 'http://127.0.0.1:8765', nyckel: '' },
     gsm: { pa: false, bort: 'GSM Helper, Discord' },
+    rubi: { pa: false },
     lasare: { pa: false, ttu: true, yatsu: true, hoshi: true, mokuro: true },
     mokuro: { pa: false },
     mpv: { pa: false },

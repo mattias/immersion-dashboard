@@ -1,6 +1,6 @@
 // Reads each source into a result of the form { akt, anki, minade }.
 // Folders come in through a small adapter (see mapp() in store.js and tools/nodedir.mjs), so the same code runs in Node.
-import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, webbResultat, somnResultat, nyttResultat, rent } from './calc.js';
+import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, webbResultat, rubiResultat, somnResultat, nyttResultat, rent } from './calc.js';
 import { oppna, rader } from './sqlite.js';
 
 const vanta = ms => new Promise(ok => setTimeout(ok, ms));
@@ -150,4 +150,30 @@ export async function lasWebb(hamtaText) {
   texter = texter.filter(t => t != null);
   if (!texter.length) throw new Kallfel('Nothing uploaded yet. Sign in with Google in the Immersion Web extension, or in Watching in the Android app.');
   try { return webbResultat(...texter); } catch (e) { throw new Kallfel(e.message); }
+}
+
+// Rubi for Vita: copies of history.csv (from ux0:data/VitaJPOverlay on the Vita) in a folder, and rubi-history.csv,
+// which the Vita app Rubi Drive Sync uploads to the folder Immersion Dashboard in My Drive. Either is enough.
+// hamtaText(name) gives a Drive file's text or null, and is null itself when Drive is not used.
+export const RUBIFIL = 'rubi-history.csv';
+export async function lasRubi(dir, o, hamtaText) {
+  const texter = [];
+  let driveFel = null;
+  if (dir) {
+    for (const e of (await dir.entries()).filter(e => e.kind === 'file' && /\.csv$/i.test(e.name)).sort(efterNamn)) {
+      const t = await text(await dir.file(e.name));
+      if (t.startsWith('uuid,given_identifier,')) texter.push(t);
+    }
+  }
+  if (hamtaText) {
+    try {
+      const t = await hamtaText(RUBIFIL);
+      if (t != null) texter.push(t.replace(/^\uFEFF/, ''));
+    } catch (e) { driveFel = e; }
+  }
+  if (!texter.length) {
+    if (driveFel) throw driveFel instanceof Kallfel ? driveFel : new Kallfel('Google Drive: ' + (driveFel?.message || driveFel));
+    throw new Kallfel(dir ? 'No history.csv here. Copy it from ux0:data/VitaJPOverlay on the Vita.' : 'Nothing uploaded from the Vita yet. Run Rubi Drive Sync on the Vita, or choose a folder with history.csv.');
+  }
+  return rubiResultat(texter, o);
 }

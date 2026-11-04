@@ -21,16 +21,23 @@ mod garmin;
 const GOOGLE_ID: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_ID");
 // Google treats the secret of an installed app as public; it cannot be kept secret in a program people download.
 const GOOGLE_HEMLIGHET: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_SECRET");
-const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
+// drive.file: the Vita app (another client in the same Google project) keeps rubi-history.csv in My Drive, since
+// Google's sign-in with a code, the only kind a Vita can do, does not allow drive.appdata.
+const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file";
 const DRIVEFIL: &str = "immersion-dashboard.json";
 // Files other apps of the same Google project put in the app folder, which the dashboard may read.
 const ANDRA_DRIVEFILER: [&str; 2] = ["immersion-web.json", "immersion-phone.json"];
+// Files other apps of the same Google project keep in My Drive, which drive.file lets the dashboard read.
+const MINA_FILER: [&str; 1] = ["rubi-history.csv"];
+// The Vita app's folder in My Drive, which Google Drive for desktop also syncs to the computer.
+const VITAMAPP: &str = "Immersion Dashboard";
 const DRIVE_NAMN: [&str; 8] = ["My Drive", "Min enhet", "Meine Ablage", "Mon Drive", "Mi unidad", "Il mio Drive", "Mijn Drive", "マイドライブ"];
 
 #[derive(Default)]
 struct Tillstand {
     rotter: Mutex<Vec<PathBuf>>,
-    token: Mutex<Option<(String, Instant)>>,
+    // The access token, when it expires, and whether Google gave it drive.file.
+    token: Mutex<Option<(String, Instant, bool)>>,
 }
 
 #[derive(Serialize)]
@@ -100,6 +107,7 @@ fn standard() -> Value {
         "gsm": finns(appdata().map(|a| a.join("GameSentenceMiner"))),
         "mpv": finns(appdata().map(|a| a.join("immersion-mpv"))),
         "lasare": finns(hitta_drive()),
+        "rubi": finns(hitta_drive().map(|d| d.join(VITAMAPP))),
         "google": GOOGLE_ID.is_some() && GOOGLE_HEMLIGHET.is_some(),
     })
 }
@@ -221,7 +229,7 @@ async fn logga_in(app: &AppHandle) -> Result<Value, String> {
 }
 
 async fn token(app: &AppHandle, st: &Tillstand, fraga: bool) -> Result<Option<String>, String> {
-    if let Some((t, utgar)) = st.token.lock().unwrap().clone() {
+    if let Some((t, utgar, _)) = st.token.lock().unwrap().clone() {
         if Instant::now() < utgar { return Ok(Some(t)); }
     }
     let sparad = tokenfil(app).and_then(|f| std::fs::read_to_string(f).ok()).and_then(|t| serde_json::from_str::<Sparad>(&t).ok());
@@ -230,6 +238,7 @@ async fn token(app: &AppHandle, st: &Tillstand, fraga: bool) -> Result<Option<St
         None if fraga => logga_in(app).await,
         None => return Ok(None),
     };
+    let filer = |j: &Value| j.get("scope").and_then(Value::as_str).map(|s| s.split(' ').any(|x| x == "https://www.googleapis.com/auth/drive.file")).unwrap_or(false);
     let j = match j {
         Ok(j) => j,
         // A revoked refresh token: forget it and sign in again.
@@ -238,7 +247,7 @@ async fn token(app: &AppHandle, st: &Tillstand, fraga: bool) -> Result<Option<St
     };
     let t = j.get("access_token").and_then(Value::as_str).ok_or("Google sent no access token")?.to_string();
     let sek = j.get("expires_in").and_then(Value::as_u64).unwrap_or(3600).saturating_sub(60);
-    *st.token.lock().unwrap() = Some((t.clone(), Instant::now() + Duration::from_secs(sek)));
+    *st.token.lock().unwrap() = Some((t.clone(), Instant::now() + Duration::from_secs(sek), filer(&j)));
     Ok(Some(t))
 }
 
@@ -254,8 +263,10 @@ fn google_logga_ut(app: AppHandle, st: State<Tillstand>) {
 }
 
 async fn drive_fil_id(t: &str, namn: &str) -> Result<Option<String>, String> {
+    let mina = MINA_FILER.contains(&namn);
+    let (plats, ordning) = if mina { ("drive", "modifiedTime desc") } else { ("appDataFolder", "modifiedTime desc") };
     let svar = reqwest::Client::new().get("https://www.googleapis.com/drive/v3/files").bearer_auth(t)
-        .query(&[("spaces", "appDataFolder"), ("q", &format!("name='{namn}'")), ("fields", "files(id)")])
+        .query(&[("spaces", plats), ("q", &format!("name='{namn}' and trashed=false")), ("fields", "files(id)"), ("orderBy", ordning)])
         .send().await.map_err(|e| e.to_string())?;
     if !svar.status().is_success() { return Err(format!("Google Drive answered {}", svar.status())); }
     let j: Value = svar.json().await.map_err(|e| e.to_string())?;
@@ -270,7 +281,21 @@ async fn drive_hamta(app: AppHandle, st: State<'_, Tillstand>, fraga: bool) -> R
 
 #[tauri::command]
 async fn drive_las(app: AppHandle, st: State<'_, Tillstand>, namn: String, fraga: bool) -> Result<Option<String>, String> {
-    if !ANDRA_DRIVEFILER.contains(&namn.as_str()) { return Err("not allowed".into()); }
+    let mina = MINA_FILER.contains(&namn.as_str());
+    if !mina && !ANDRA_DRIVEFILER.contains(&namn.as_str()) { return Err("not allowed".into()); }
+    if mina {
+        let filer = |st: &Tillstand| st.token.lock().unwrap().as_ref().map(|t| t.2).unwrap_or(false);
+        let inloggad = token(&app, &st, fraga).await?.is_some();
+        // Signed in before drive.file was asked for: a click signs in again.
+        if inloggad && !filer(&st) && fraga {
+            if let Some(f) = tokenfil(&app) { let _ = std::fs::remove_file(f); }
+            *st.token.lock().unwrap() = None;
+            token(&app, &st, true).await?;
+        }
+        if inloggad && !filer(&st) {
+            return Err("Google has not let the dashboard read the files the Vita app uploads. Press ↻ to sign in again and tick that box.".into());
+        }
+    }
     drive_las_fil(&app, &st, fraga, &namn).await
 }
 
