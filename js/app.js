@@ -138,6 +138,8 @@ async function synka(fraga) {
   synkar = true;
   senastSynk = Date.now();
   $('synk').classList.add('snurrar');
+  // Look for the folders again: Google Drive for desktop may have mounted its drive after the app started.
+  if (APP) STD = await invoke('standard').catch(() => STD);
   const medMoln = molnFinns() && S.moln.pa;
   // Immersion Web is read from Drive even when the dashboard's own copy is not synced.
   const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa || S.kallor.lyssna.pa || S.kallor.rubi.pa);

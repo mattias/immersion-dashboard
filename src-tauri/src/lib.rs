@@ -95,8 +95,16 @@ fn tillaten(st: &Tillstand, p: &str) -> Result<PathBuf, String> {
     if p.file_name().map(|n| n.eq_ignore_ascii_case("secrets.json")).unwrap_or(false) {
         return Err("not allowed".into());
     }
-    let ok = st.rotter.lock().unwrap().iter().any(|r| std::fs::canonicalize(r).map(|r| p.starts_with(r)).unwrap_or(false));
-    if ok { Ok(p) } else { Err("outside the source folders".into()) }
+    let under = |v: &[PathBuf]| v.iter().any(|r| std::fs::canonicalize(r).map(|r| p.starts_with(r)).unwrap_or(false));
+    let mut rotter = st.rotter.lock().unwrap();
+    if under(&rotter) { return Ok(p); }
+    // Google Drive for desktop can mount its drive after the app has started, for example just after logging in.
+    let nya: Vec<PathBuf> = standard_rotter().into_iter().filter(|r| !rotter.contains(r)).collect();
+    if under(&nya) {
+        rotter.extend(nya);
+        return Ok(p);
+    }
+    Err("outside the source folders".into())
 }
 
 #[tauri::command]
