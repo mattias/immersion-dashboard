@@ -1,7 +1,7 @@
 // Ties the app together: settings, where each source is, syncing, setup, export and import.
 // Runs both as the Windows app (reads AppData directly) and as the web app (folder handles, or data synced from the computer).
 import { kombinera } from './calc.js';
-import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasWebb, lasRubi, lasSomn, Kallfel } from './sources.js';
+import { lasAnki, lasAnkiConnect, lasGsm, lasLasare, lasMokuro, lasMpv, lasWebb, lasLyssna, lasRubi, lasSomn, Kallfel } from './sources.js';
 import { hamta, spara, radera, installningar, mapp, harBehorighet } from './store.js';
 import { visa, sattBild } from './view.js';
 import { APP, invoke, appMapp, appFil, ankiConnectViaApp } from './plattform.js';
@@ -31,6 +31,7 @@ const KALLOR = [
   { id: 'mpv', namn: 'immersion-mpv', text: 'Anime and video watched in mpv with immersion-mpv.', typ: 'mapp', appdata: true,
     sokvag: { win: '%APPDATA%\\immersion-mpv', mac: '~/.config/immersion-mpv', linux: '~/.config/immersion-mpv' } },
   { id: 'webb', namn: 'Netflix, YouTube and Twitch', text: 'Japanese video watched in the browser with the Immersion Web extension, and in the apps on an Android phone.', typ: 'drive' },
+  { id: 'lyssna', namn: 'Listening Practice', text: 'Japanese listening time and sentences from the Listening Practice app on an Android phone.', typ: 'drive' },
   { id: 'garmin', namn: 'Garmin Connect', text: 'Sleep per night from your Garmin watch.', typ: 'garmin' },
   { id: 'somn', namn: 'Sleep from a file', text: 'Hours of sleep per night from a CSV file, for watches other than Garmin.', typ: 'fil' }
 ];
@@ -126,6 +127,7 @@ function las(k, p) {
   if (k.id === 'somn') return lasSomn(p);
   if (k.id === 'garmin') return lasGarmin(fragaNu);
   if (k.id === 'webb') return lasWebb(driveText);
+  if (k.id === 'lyssna') return lasLyssna(driveText);
   if (k.id === 'rubi') return lasRubi(p, o, molnFinns() ? driveText : null);
   return lasMpv(p);
 }
@@ -138,7 +140,7 @@ async function synka(fraga) {
   $('synk').classList.add('snurrar');
   const medMoln = molnFinns() && S.moln.pa;
   // Immersion Web is read from Drive even when the dashboard's own copy is not synced.
-  const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa || S.kallor.rubi.pa);
+  const behoverToken = !APP && moln.finns && (medMoln || S.kallor.webb.pa || S.kallor.lyssna.pa || S.kallor.rubi.pa);
   const webbToken = behoverToken && (fraga || moln.harToken()) ? moln.begarToken().catch(e => e) : null;
   const fel = [];
   let lastes = 0, vantar = false;
@@ -313,6 +315,9 @@ async function kallKort(k) {
   if (k.typ === 'garmin') {
     val += APP ? `<p class="liten">The first sync opens Garmin Connect's own sign-in page in a window. The dashboard never sees your password. It fetches every night Garmin has the first time, then only new nights.</p><div class="valrad">${await kallStatus(k)}${await hamta('resultat:garmin') ? '<button type="button" class="knapp tyst" id="garminOm">Fetch all nights again</button>' : ''}</div>`
       : `<p class="varning">Garmin can only be read by the Windows app${molnFinns() ? ', which syncs it here through Google Drive' : ''}.</p>`;
+  } else if (k.id === 'lyssna') {
+    val += molnFinns() ? `<p class="liten">Listening Practice sends nothing anywhere. On Android, the 旅の記録 app reads your Japanese listening from it, once you allow that, and uploads it to the same hidden app folder in your Drive. Open <a href="intent://listening#Intent;scheme=immersiondashboard;package=io.github.mattias.immersiondashboard;end">Listening Practice</a> in the app (also under its own icon) to allow it and connect Google Drive. The dashboard fetches it when you sync. If you do not use Listening Practice, leave this off.</p><div class="valrad">${await kallStatus(k)}</div>`
+      : '<p class="varning">Needs Google Drive, which this copy of the dashboard has no client ID for.</p>';
   } else if (k.typ === 'drive') {
     val += molnFinns() ? `<p class="liten">Install <a href="https://github.com/mattias/immersion-web" target="_blank" rel="noopener">Immersion Web</a> in Vivaldi, Chrome or Edge and sign in with Google there. It counts only time when the video plays with sound, and uploads Japanese watching to the same hidden app folder in your Drive. The dashboard fetches it when you sync.</p><p class="liten">On Android, the 旅の記録 app counts the YouTube, Netflix and Twitch apps too: open <a href="intent://watching#Intent;scheme=immersiondashboard;package=io.github.mattias.immersiondashboard;end">Watching</a> (also its own icon) and connect Google Drive there.</p><div class="valrad">${await kallStatus(k)}</div>`
       : '<p class="varning">Needs Google Drive, which this copy of the dashboard has no client ID for.</p>';
@@ -511,7 +516,7 @@ async function start() {
   $('kommIgang').onclick = oppnaDialog;
   await visaBakgrund();
   await ritaOm();
-  if (!APP && moln.finns && (S.moln.pa || S.kallor.webb.pa || S.kallor.rubi.pa)) moln.forbered();
+  if (!APP && moln.finns && (S.moln.pa || S.kallor.webb.pa || S.kallor.lyssna.pa || S.kallor.rubi.pa)) moln.forbered();
   if (!S.valkommen) return oppnaDialog();
   // Reads again on every start, so most days need no click at all.
   await synka(false);

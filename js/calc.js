@@ -253,6 +253,22 @@ export function webbResultat(...texter) {
   return rent(r);
 }
 
+// Listening Practice: immersion-listening.json holds totals per (date, language, kind), written by the Android app from the
+// statistics of Listening Practice. Japanese only. One title per kind of source, with the sentences as the count.
+const LYSSNA_TITLAR = { anki: 'Anki cards', video: 'Videos and audio', song: 'Songs', sound: 'Sound training', other: 'Earlier days' };
+export function lyssnaResultat(text) {
+  const j = JSON.parse(text);
+  if (j?.app !== 'listening-practice') throw new Error('That file was not written by Listening Practice.');
+  const r = nyttResultat();
+  for (const p of j.entries || []) {
+    if (p.language !== 'ja' || !p.date) continue;
+    const sek = p.seconds || 0;
+    if (sek <= 0) continue;
+    r.lagg(p.date, 'lyssna', LYSSNA_TITLAR[p.kind] || p.kind, 0, sek / 60, 'Listening Practice');
+  }
+  return rent(r);
+}
+
 // Rubi for Vita: history.csv, one record per line of text Rubi read in a game on the PS Vita (docs/ocr-history.md in
 // bee-san/Rubi_for_vita). Cells are quoted, and a line may hold line breaks.
 export function csvRader(text) {

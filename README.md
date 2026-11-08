@@ -60,6 +60,7 @@ Windows, use the Windows app.
 | **Mokuro without Google Drive** | Manga read on reader.mokuro.app | A `mokuro-volumes.json` file, see below |
 | **immersion-mpv** | Anime and video watched in mpv | `%APPDATA%\immersion-mpv` |
 | **Netflix, YouTube and Twitch** | Japanese video on Netflix, YouTube and Twitch | The [Immersion Web](https://github.com/mattias/immersion-web) browser extension, and **Watching** in the Android app for the YouTube, YouTube Music, Netflix and Twitch apps, both through the app folder in your Google Drive |
+| **Listening Practice** | Japanese listening time from the [Listening Practice](https://github.com/mattias/anki-listening-practice) Android app, per kind of source (Anki cards, videos, songs, sound training) | **Listening Practice** in the Android app: you allow it once, and it uploads the numbers through the app folder in your Google Drive. Optional, and Listening Practice works the same without it |
 | **Garmin Connect** | Sleep: hours and score per night | Signing in to Garmin Connect, Windows app only |
 | **Sleep from a file** | Hours and score per night | A CSV file, see below |
 
@@ -129,7 +130,7 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
   immersion-mpv's `secrets.json`. It writes nothing to them.
 - Sync between devices uses the `drive.appdata` permission: one file in a hidden folder that
   only this app can see. The Immersion Web extension puts its own file, `immersion-web.json`, in
-  the same folder, and the Android app puts `immersion-phone.json` there. The dashboard reads both.
+  the same folder, and the Android app puts `immersion-phone.json` and `immersion-listening.json` there. The dashboard reads them.
 - It also asks for `drive.file`, which only reaches files this project's own apps created: here
   `rubi-history.csv`, which Rubi Drive Sync keeps in My Drive, because Google lets a console sign in
   with a code only for that permission. It cannot see anything else in your Drive.
@@ -140,6 +141,13 @@ column, an `hours` (or `timmar`) column and optionally `score`, `bedtime` and `w
   the channel, artist or podcast has kana or kanji. Twitch gives only the
   channel name and Netflix only the episode, in the app's display language, so those count once
   you mark them as Japanese in Watching.
+- Listening Practice is read only if you use it and allow it. In the Android app's Watching screen, section 4,
+  Android asks once whether the dashboard may read your Listening Practice statistics. Without that nothing is read,
+  and Listening Practice itself never sends anything: it only offers a read-only content provider, see its
+  [statistics page](https://github.com/mattias/anki-listening-practice/blob/main/docs/statistics.md). Only the
+  numbers per day, language and kind (listening time, sentences) are uploaded, and only the Japanese ones are shown.
+  The upload runs when the screen is opened and every six hours after that. You can take the permission back in
+  Android's app settings.
 - Settings → Your data → **Export JSON** saves everything the dashboard has read, and
   **Import JSON** brings it into another device. **Erase everything** removes all data,
   settings and the background image.

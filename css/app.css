@@ -7,7 +7,7 @@
   --grid: rgba(214, 222, 255, .08); --axis: rgba(214, 222, 255, .18);
   --guld: #dcc08a; --silver: #e4e8f2; --ogon: #7fd4b0;
   /* Chart colours, checked for contrast against #141a2b. */
-  --anki: #4a8ee6; --bok: #b8841c; --spel: #22a578; --manga: #a06bd6; --titta: #e06a5a;
+  --anki: #4a8ee6; --bok: #b8841c; --spel: #22a578; --manga: #a06bd6; --titta: #e06a5a; --lyssna: #3fb6c8;
   --serif: "Cormorant Garamond", "Shippori Mincho", serif;
   --mincho: "Shippori Mincho", "Yu Mincho", serif;
   --sans: "Zen Kaku Gothic New", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;

@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -37,7 +38,7 @@ import java.util.concurrent.Executors;
 
 /** Settings for watching on the phone: notification access, Google Drive, and which channels count as Japanese. */
 public class TittaAktivitet extends Activity {
-    private static final int GOOGLE = 1;
+    private static final int GOOGLE = 1, TILLSTAND = 3;
     private LinearLayout lista;
     private long nedladdning = -1;
     private final BroadcastReceiver klar = new BroadcastReceiver() {
@@ -76,6 +77,8 @@ public class TittaAktivitet extends Activity {
         super.onResume();
         Uppdatering.kolla(this, () -> runOnUiThread(this::rita));
         rita();
+        // Already allowed: keep the schedule, and bring the upload up to date when the screen is opened.
+        if (Lyssna.installerad(this) && Lyssna.tillat(this)) laddaLyssna();
     }
 
     private int dp(int x) { return Math.round(x * getResources().getDisplayMetrics().density); }
@@ -153,6 +156,8 @@ public class TittaAktivitet extends Activity {
             });
         }
 
+        lyssna(l);
+
         text("What the apps report", 17, true);
         JSONObject s = l.senaste;
         if (s.length() == 0) text("Nothing yet. Play something in YouTube, YouTube Music, Netflix or Twitch.", 13, false);
@@ -160,6 +165,46 @@ public class TittaAktivitet extends Activity {
             String k = it.next();
             text(k + "\n" + s.optString(k), 12, false).setTypeface(Typeface.MONOSPACE);
         }
+    }
+
+    /** Listening Practice: optional. The dashboard reads its statistics once the user allows it, and uploads them like the rest. */
+    private void lyssna(Logg l) {
+        text("4. Listening Practice (optional)", 17, true);
+        text("If you use the Listening Practice app, the dashboard can read how much Japanese you have listened to in it and upload it to the same app folder. "
+            + "Listening Practice sends nothing itself, and nothing is read until you allow it here.", 13, false);
+        if (!Lyssna.installerad(this)) {
+            text("Listening Practice 0.11.0 or newer is not installed on this phone.", 14, false);
+            return;
+        }
+        if (!Lyssna.tillat(this)) {
+            knapp("Allow reading Listening Practice", v -> requestPermissions(new String[] { Lyssna.PERMISSION }, TILLSTAND));
+            if (l.drive.optBoolean("lnekad")) {
+                text("Android did not ask. If this app was installed before Listening Practice, uninstall and install this app again, then allow it.", 13, false);
+            }
+            return;
+        }
+        long senast = l.drive.optLong("lsenast");
+        String fel = l.drive.optString("lfel");
+        if (senast > 0 && fel.isEmpty()) text("✓ Allowed. Last upload " + DateUtils.getRelativeTimeSpanString(senast) + ".", 14, false).setTextColor(0xFF81C784);
+        else text("Allowed." + (senast > 0 ? " Last upload " + DateUtils.getRelativeTimeSpanString(senast) + "." : ""), 14, false);
+        if (!fel.isEmpty()) text(fel, 13, false).setTextColor(0xFFE57373);
+        knapp("Upload Listening Practice now", v -> laddaLyssna());
+    }
+
+    @Override public void onRequestPermissionsResult(int kod, String[] rattigheter, int[] resultat) {
+        super.onRequestPermissionsResult(kod, rattigheter, resultat);
+        if (kod != TILLSTAND) return;
+        boolean ja = resultat.length > 0 && resultat[0] == PackageManager.PERMISSION_GRANTED;
+        Logg.av(this).sattDrive("lnekad", !ja);
+        if (ja) laddaLyssna(); else rita();
+    }
+
+    private void laddaLyssna() {
+        LyssnaJobb.planera(this);
+        Executors.newSingleThreadExecutor().execute(() -> {
+            Drive.laddaLyssna(getApplicationContext());
+            runOnUiThread(this::rita);
+        });
     }
 
     private static final class Rad {

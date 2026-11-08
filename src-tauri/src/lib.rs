@@ -26,7 +26,7 @@ const GOOGLE_HEMLIGHET: Option<&str> = option_env!("GOOGLE_DESKTOP_CLIENT_SECRET
 const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file";
 const DRIVEFIL: &str = "immersion-dashboard.json";
 // Files other apps of the same Google project put in the app folder, which the dashboard may read.
-const ANDRA_DRIVEFILER: [&str; 2] = ["immersion-web.json", "immersion-phone.json"];
+const ANDRA_DRIVEFILER: [&str; 3] = ["immersion-web.json", "immersion-phone.json", "immersion-listening.json"];
 // Files other apps of the same Google project keep in My Drive, which drive.file lets the dashboard read.
 const MINA_FILER: [&str; 1] = ["rubi-history.csv"];
 // The Vita app's folder in My Drive, which Google Drive for desktop also syncs to the computer.

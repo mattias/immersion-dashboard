@@ -1,6 +1,7 @@
 package io.github.mattias.immersiondashboard.titta;
 
 import android.content.Context;
+import android.os.Build;
 
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.api.identity.AuthorizationRequest;
@@ -48,22 +49,49 @@ final class Drive {
         return r.hasResolution() ? null : r.getAccessToken();
     }
 
+    /** Builds the text of a file from what is in the app folder now (null when the file is not there yet). */
+    interface Bygg { String bygg(JSONObject gammal) throws Exception; }
+
+    /** Writes a file in the app folder, with a new token once if the first one has expired. */
+    private static void uppdatera(Context c, String namn, Bygg bygg) throws Exception {
+        String t = token(c);
+        if (t == null) throw new IOException("Not connected to Google Drive.");
+        try { skriv(t, namn, bygg); }
+        catch (Obehorig e) {
+            // An expired token: drop it and try once more with a new one.
+            GoogleAuthUtil.clearToken(c, t);
+            t = token(c);
+            if (t == null) throw new IOException("Not connected to Google Drive.");
+            skriv(t, namn, bygg);
+        }
+    }
+
+    /** Uploads Listening Practice's statistics as immersion-listening.json. Returns an error message, or null. */
+    static synchronized String laddaLyssna(Context c) {
+        Logg l = Logg.av(c);
+        try {
+            JSONArray rader = Lyssna.las(c);
+            uppdatera(c, Lyssna.FIL, g -> Lyssna.slaIhop(g, rader, nu(), Build.MODEL).toString());
+            l.sattDrive("lsenast", System.currentTimeMillis());
+            l.sattDrive("lfel", "");
+            return null;
+        } catch (Exception e) {
+            String fel = e.getMessage() != null ? e.getMessage() : e.toString();
+            l.sattDrive("lfel", fel);
+            return fel;
+        }
+    }
+
     /** Uploads when something changed since the last upload, or always with tvinga. Returns an error message, or null. */
     static synchronized String ladda(Context c, boolean tvinga) {
         Logg l = Logg.av(c);
         if (!tvinga && !l.drive.optBoolean("osynkat")) return null;
         l.sattDrive("osynkat", false);
         try {
-            String t = token(c);
-            if (t == null) throw new IOException("Not connected to Google Drive.");
-            try { skriv(c, t, l); }
-            catch (Obehorig e) {
-                // An expired token: drop it and try once more with a new one.
-                GoogleAuthUtil.clearToken(c, t);
-                t = token(c);
-                if (t == null) throw new IOException("Not connected to Google Drive.");
-                skriv(c, t, l);
-            }
+            uppdatera(c, FIL, g -> {
+                JSONObject[] k = l.kopia();
+                return Regler.slaIhop(g, k[0], k[1], nu()).toString();
+            });
             l.sattDrive("senast", System.currentTimeMillis());
             l.sattDrive("fel", "");
             return null;
@@ -75,20 +103,19 @@ final class Drive {
         }
     }
 
-    private static void skriv(Context c, String t, Logg l) throws Exception {
-        String q = URLEncoder.encode("name = '" + FIL + "'", "UTF-8");
+    private static void skriv(String t, String namn, Bygg bygg) throws Exception {
+        String q = URLEncoder.encode("name = '" + namn + "'", "UTF-8");
         JSONArray filer = new JSONObject(anrop(t, "GET", API + "/drive/v3/files?spaces=appDataFolder&fields=files(id)&q=" + q, null, null))
             .optJSONArray("files");
         String id = filer != null && filer.length() > 0 ? filer.getJSONObject(0).getString("id") : null;
         JSONObject fil = id == null ? null : new JSONObject(anrop(t, "GET", API + "/drive/v3/files/" + id + "?alt=media", null, null));
-        JSONObject[] k = l.kopia();
-        String kropp = Regler.slaIhop(fil, k[0], k[1], nu()).toString();
+        String kropp = bygg.bygg(fil);
         if (id != null) {
             anrop(t, "PATCH", API + "/upload/drive/v3/files/" + id + "?uploadType=media", "application/json", kropp);
             return;
         }
         String grans = "immersion" + Long.toHexString(System.nanoTime());
-        String meta = new JSONObject().put("name", FIL).put("parents", new JSONArray().put("appDataFolder")).toString();
+        String meta = new JSONObject().put("name", namn).put("parents", new JSONArray().put("appDataFolder")).toString();
         String body = "--" + grans + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + meta + "\r\n--" + grans
             + "\r\nContent-Type: application/json\r\n\r\n" + kropp + "\r\n--" + grans + "--";
         anrop(t, "POST", API + "/upload/drive/v3/files?uploadType=multipart", "multipart/related; boundary=" + grans, body);

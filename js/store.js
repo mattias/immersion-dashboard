@@ -39,6 +39,7 @@ export const STANDARD = {
     mokuro: { pa: false },
     mpv: { pa: false },
     webb: { pa: false },
+    lyssna: { pa: false },
     garmin: { pa: false },
     somn: { pa: false }
   },

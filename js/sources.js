@@ -1,6 +1,6 @@
 // Reads each source into a result of the form { akt, anki, minade }.
 // Folders come in through a small adapter (see mapp() in store.js and tools/nodedir.mjs), so the same code runs in Node.
-import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, webbResultat, rubiResultat, somnResultat, nyttResultat, rent } from './calc.js';
+import { ankiDagar, minadeDagar, gsmResultat, ttuResultat, hoshiResultat, mokuroResultat, mpvResultat, webbResultat, lyssnaResultat, rubiResultat, somnResultat, nyttResultat, rent } from './calc.js';
 import { oppna, rader } from './sqlite.js';
 
 const vanta = ms => new Promise(ok => setTimeout(ok, ms));
@@ -150,6 +150,16 @@ export async function lasWebb(hamtaText) {
   texter = texter.filter(t => t != null);
   if (!texter.length) throw new Kallfel('Nothing uploaded yet. Sign in with Google in the Immersion Web extension, or in Watching in the Android app.');
   try { return webbResultat(...texter); } catch (e) { throw new Kallfel(e.message); }
+}
+
+// Listening Practice, the Android app: the dashboard's Android app reads its statistics (with the user's permission) and
+// uploads them as immersion-listening.json to the app folder in Google Drive. hamtaText(name) gives a file's text or null.
+export const LYSSNAFIL = 'immersion-listening.json';
+export async function lasLyssna(hamtaText) {
+  let t;
+  try { t = await hamtaText(LYSSNAFIL); } catch (e) { throw e instanceof Kallfel ? e : new Kallfel('Google Drive: ' + (e?.message || e)); }
+  if (t == null) throw new Kallfel('Nothing uploaded yet. Allow it in Listening Practice in the Android app.');
+  try { return lyssnaResultat(t); } catch (e) { throw new Kallfel(e.message); }
 }
 
 // Rubi for Vita: copies of history.csv (from ux0:data/VitaJPOverlay on the Vita) in a folder, and rubi-history.csv,

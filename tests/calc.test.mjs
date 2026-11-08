@@ -1,7 +1,7 @@
 process.env.TZ = 'Europe/Stockholm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, webbResultat, rubiResultat, rubiTecken, csvRader, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
+import { avrunda, norm, dagMedByte, kombinera, ankiDagar, gsmResultat, mokuroResultat, mokuroTitel, mpvResultat, webbResultat, lyssnaResultat, rubiResultat, rubiTecken, csvRader, nyttResultat, rent, ttuResultat, hoshiResultat } from '../js/calc.js';
 
 const ms = s => new Date(s).getTime();
 
@@ -110,6 +110,21 @@ test('Immersion Web entries are summed per site and series', () => {
   const d = kombinera([r, mpvResultat(JSON.stringify({ date: '2026-11-03', file: 'f.mkv', title: 'Frieren', anilist_id: 1, seconds: 600, chars: 100, episode: 3 }))]);
   assert.deepEqual(d['2026-11-03'].akt.map(a => [a.t, a.s]), [['Frieren', 'Netflix'], ['ANNnewsCH', 'YouTube']]);
   assert.throws(() => webbResultat('{"app":"something else"}'));
+});
+
+test('Listening Practice statistics: Japanese only, one title per kind, seconds become minutes', () => {
+  const fil = JSON.stringify({ app: 'listening-practice', version: 1, entries: [
+    { date: '2026-11-08', language: 'ja', kind: 'anki', sentences: 12, plays: 80, clear: 3, seconds: 600, active: 900 },
+    { date: '2026-11-08', language: 'ja', kind: 'song', sentences: 4, plays: 20, clear: 0, seconds: 90, active: 120 },
+    { date: '2026-11-08', language: 'sv', kind: 'anki', sentences: 9, plays: 30, clear: 1, seconds: 300, active: 400 },
+    { date: '2026-11-07', language: 'ja', kind: 'other', sentences: 5, plays: 0, clear: 5, seconds: 0, active: 0 }
+  ] });
+  const r = lyssnaResultat(fil);
+  assert.deepEqual(r.akt, [
+    ['2026-11-08', 'lyssna', 'Anki cards', 0, 10, 'Listening Practice'],
+    ['2026-11-08', 'lyssna', 'Songs', 0, 1.5, 'Listening Practice']
+  ]);
+  assert.throws(() => lyssnaResultat('{"app":"immersion-web"}'));
 });
 
 // Rubi for Vita's history.csv: the five ExStatic columns, 36 more, then characters (42nd) and line_source.

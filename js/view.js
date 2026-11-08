@@ -1,9 +1,9 @@
 // Draws the dashboard from the combined days. app.js calls visa() whenever the data or settings change.
 import { datum } from './calc.js';
 
-const ALLA_KAT = [['anki', 'Anki'], ['bok', 'Books'], ['spel', 'Games and VNs'], ['manga', 'Manga'], ['titta', 'Anime and video']];
+const ALLA_KAT = [['anki', 'Anki'], ['bok', 'Books'], ['spel', 'Games and VNs'], ['manga', 'Manga'], ['titta', 'Anime and video'], ['lyssna', 'Listening practice']];
 let D = {}, KAT = ALLA_KAT, IDAG = datum(new Date()), FORSTA = IDAG, MAL = 120, ANKI = true, SOMN = false, startad = false;
-const FARG = { anki: 'var(--anki)', bok: 'var(--bok)', spel: 'var(--spel)', manga: 'var(--manga)', titta: 'var(--titta)' };
+const FARG = { anki: 'var(--anki)', bok: 'var(--bok)', spel: 'var(--spel)', manga: 'var(--manga)', titta: 'var(--titta)', lyssna: 'var(--lyssna)' };
 const VYER = [['dag', 'Day'], ['vecka', 'Week'], ['manad', 'Month'], ['ar', 'Year'], ['allt', 'All']];
 const MANAD = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const VDAG = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -60,7 +60,7 @@ function period(v, s) {
 }
 
 function summa(fran, till) {
-  const r = { min: { anki: 0, bok: 0, spel: 0, manga: 0, titta: 0 }, tecken: { bok: 0, spel: 0, manga: 0, titta: 0 }, rep: 0, ok: 0, test: 0, nya: 0, minade: 0, somn: [], poang: [], aktiva: 0, titlar: new Map(), lekar: new Map() };
+  const r = { min: { anki: 0, bok: 0, spel: 0, manga: 0, titta: 0, lyssna: 0 }, tecken: { bok: 0, spel: 0, manga: 0, titta: 0, lyssna: 0 }, rep: 0, ok: 0, test: 0, nya: 0, minade: 0, somn: [], poang: [], aktiva: 0, titlar: new Map(), lekar: new Map() };
   for (let d = fran; d <= till; d = plus(d, 1)) {
     const x = D[d];
     if (!x) continue;
@@ -105,7 +105,7 @@ function ritaStreaks() {
     return `<div class="streak"><div class="etikett">${e}</div><div class="stort">${siffra(s.nu)}<small>${s.nu === 1 ? 'day' : 'days'}</small></div>
       <div class="liten ${klar ? 'klar' : ''}">${klar ? '✦ Done for today' : tom} · ${langst}</div>${prickar(test)}</div>`;
   };
-  $('streaks').innerHTML = (ANKI ? tile('Anki', harAnki, 'Not done yet today') : '') + tile('Immersion', harImm, 'Reading, games, manga or watching');
+  $('streaks').innerHTML = (ANKI ? tile('Anki', harAnki, 'Not done yet today') : '') + tile('Immersion', harImm, 'Reading, games, manga, watching or listening');
   $('streaks').style.gridTemplateColumns = ANKI ? '' : '1fr';
 }
 
@@ -269,7 +269,7 @@ function ritaListor(s) {
     const fart = x.m >= 5 && x.c ? ` · ${siffra(x.c / x.m * 60)} characters per hour` : '';
     return `<div class="post"><span class="prick" style="background:${FARG[x.k]};color:${FARG[x.k]}"></span><div class="namn" title="${esc(x.t)}">${esc(x.t)}</div><div class="tid">${tid(x.m)}</div>
       <div class="matt"><span style="width:${x.m / max * 100}%;background:${FARG[x.k]}"></span></div>
-      <div class="mer">${namn[x.k]}${x.e.size ? ` · episode${x.e.size > 1 ? 's' : ''} ${[...x.e].sort((a, b) => a - b).join(", ")}` : ""} · ${siffra(x.c)} ${x.k === "titta" ? "characters heard" : "characters"}${fart}${x.dagar > 1 ? ` · ${x.dagar} days` : ''} · ${[...x.s].join(', ')}</div></div>`;
+      <div class="mer">${namn[x.k]}${x.e.size ? ` · episode${x.e.size > 1 ? 's' : ''} ${[...x.e].sort((a, b) => a - b).join(", ")}` : ""} ${x.k === "lyssna" ? "" : `· ${siffra(x.c)} ${x.k === "titta" ? "characters heard" : "characters"}`}${fart}${x.dagar > 1 ? ` · ${x.dagar} days` : ''} · ${[...x.s].join(', ')}</div></div>`;
   }).join('') : '<div class="tom">No reading, games or watching this period.</div>';
   const l = [...s.lekar.entries()].sort((a, b) => b[1] - a[1]);
   const lmax = l.length ? l[0][1] : 1;
